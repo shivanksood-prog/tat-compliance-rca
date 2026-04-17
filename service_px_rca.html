@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service-Px TAT RCA — Who is driving the SLA decline?</title>
+<style>
+  :root {
+    --bg: #FAF9FC;
+    --card: #FFFFFF;
+    --border: #D7D3E0;
+    --text: #161021;
+    --muted: #665E75;
+    --label: #A7A1B2;
+    --accent: #D9008D;
+    --accent-light: #FFE5F6;
+    --secondary: #443152;
+    --green: #008043;
+    --green-light: #E1FAED;
+    --red: #E01E00;
+    --red-light: #FFE9E5;
+    --amber: #FF8000;
+    --amber-light: #FFE6CC;
+    --purple: #6D17CE;
+    --purple-light: #F1E5FF;
+    --neutral-100: #F1EDF7;
+    --neutral-300: #D7D3E0;
+    --brand-300: #FFB2E4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6; padding: 0;
+  }
+
+  .hero {
+    background: linear-gradient(135deg, var(--secondary) 0%, #2a1a3a 100%);
+    color: #FAF9FC; padding: 48px 40px 40px;
+  }
+  .hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .hero .subtitle { font-size: 15px; color: var(--brand-300); margin-bottom: 24px; }
+
+  .hero-metrics { display: flex; gap: 20px; flex-wrap: wrap; }
+  .hero-metric {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px; padding: 18px 24px; min-width: 160px;
+  }
+  .hero-metric .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--brand-300); margin-bottom: 4px; }
+  .hero-metric .metric-value { font-size: 28px; font-weight: 700; }
+  .hero-metric .metric-sub { font-size: 12px; color: #A7A1B2; margin-top: 2px; }
+  .hero-metric.negative .metric-value { color: #FF6B6B; }
+  .hero-metric.positive .metric-value { color: #69DB7C; }
+
+  .container { max-width: 1260px; margin: 0 auto; padding: 32px 40px; }
+
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 12px 40px; display: flex; gap: 20px; flex-wrap: wrap;
+  }
+  .nav a {
+    font-size: 12px; font-weight: 500; color: var(--muted);
+    text-decoration: none; padding: 6px 0;
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  .nav a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+
+  section { margin-bottom: 48px; }
+  section h2 {
+    font-size: 20px; font-weight: 700; color: var(--secondary);
+    margin-bottom: 6px; padding-bottom: 12px;
+    border-bottom: 2px solid var(--accent); display: inline-block;
+  }
+  section .desc { font-size: 14px; color: var(--muted); margin-bottom: 24px; margin-top: 8px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 20px;
+  }
+  .card h3 { font-size: 15px; font-weight: 600; color: var(--secondary); margin-bottom: 16px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left; padding: 10px 12px;
+    background: var(--neutral-100); color: var(--muted);
+    font-weight: 600; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.4px; border-bottom: 2px solid var(--border);
+  }
+  th.r, td.r { text-align: right; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--neutral-100); }
+  tr:hover td { background: #F8F5FC; }
+  tr.total-row td { font-weight: 700; border-top: 2px solid var(--border); background: var(--neutral-100); }
+
+  .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-green { background: var(--green-light); color: var(--green); }
+  .badge-red { background: var(--red-light); color: var(--red); }
+  .badge-amber { background: var(--amber-light); color: var(--amber); }
+  .badge-purple { background: var(--purple-light); color: var(--purple); }
+  .badge-muted { background: var(--neutral-100); color: var(--muted); }
+
+  .insight {
+    background: var(--accent-light); border-left: 4px solid var(--accent);
+    border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 20px 0; font-size: 14px;
+  }
+  .insight strong { color: var(--accent); }
+
+  .callout-red {
+    background: var(--red-light); border-left: 4px solid var(--red);
+    border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 20px 0; font-size: 14px;
+  }
+  .callout-red strong { color: var(--red); }
+
+  .callout-green {
+    background: var(--green-light); border-left: 4px solid var(--green);
+    border-radius: 0 8px 8px 0; padding: 16px 20px; margin: 20px 0; font-size: 14px;
+  }
+
+  .flow-arrow {
+    text-align: center; font-size: 24px; color: var(--accent); margin: 16px 0;
+  }
+
+  .bar-inline {
+    display: inline-block; height: 18px; border-radius: 3px; vertical-align: middle;
+    min-width: 3px;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 20px 0; }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px; text-align: center;
+  }
+  .stat-card .stat-num { font-size: 32px; font-weight: 700; }
+  .stat-card .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  .conclusion {
+    background: linear-gradient(135deg, var(--secondary), #2a1a3a);
+    border-radius: 16px; padding: 32px; color: #FAF9FC; margin-top: 40px;
+  }
+  .conclusion h2 { color: var(--brand-300); border-bottom-color: var(--brand-300); }
+  .conclusion p, .conclusion li { color: #D7D3E0; }
+  .conclusion strong { color: #FAF9FC; }
+
+  .fraud-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--red); margin-right: 4px; vertical-align: middle;
+  }
+
+  footer {
+    text-align: center; padding: 24px 40px; font-size: 12px; color: var(--label);
+    border-top: 1px solid var(--border);
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Service-Px TAT Compliance RCA</h1>
+  <p class="subtitle">Who is driving the SLA decline? &mdash; Partner-level deep dive | Dec 2025 vs Mar-Apr 2026</p>
+  <div class="hero-metrics">
+    <div class="hero-metric"><div class="metric-label">Dec Baseline</div><div class="metric-value">77.4%</div><div class="metric-sub">41,020 / 52,969 tickets</div></div>
+    <div class="hero-metric"><div class="metric-label">Recent Period</div><div class="metric-value">73.1%</div><div class="metric-sub">37,907 / 51,845 tickets</div></div>
+    <div class="hero-metric negative"><div class="metric-label">Drop</div><div class="metric-value">&minus;4.33pp</div><div class="metric-sub">2,243 delta tickets</div></div>
+    <div class="hero-metric negative"><div class="metric-label">Top 30 Explain</div><div class="metric-value">55%</div><div class="metric-sub">1,225 of 2,243 delta tickets</div></div>
+    <div class="hero-metric"><div class="metric-label">Fraud in Top 30</div><div class="metric-value" style="color:#FF6B6B">22/30</div><div class="metric-sub">73% have fraud records</div></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <a href="#s1">1. The Gap</a>
+  <a href="#s2">2. Risk Buckets</a>
+  <a href="#s3">3. Why LL?</a>
+  <a href="#s4">4. Install Gradient</a>
+  <a href="#s5">5. Concentration</a>
+  <a href="#s6">6. Top 30</a>
+  <a href="#s7">7. Fraud + PTL</a>
+  <a href="#s8">8. Counterfactual</a>
+  <a href="#s9">9. Recommendations</a>
+</div>
+
+<div class="container">
+
+<!-- SECTION 1: THE GAP -->
+<section id="s1">
+  <h2>1. The Gap — 2,243 Tickets</h2>
+  <p class="desc">The overall TAT dropped from 77.4% to 73.1%. What does that mean in absolute tickets?</p>
+
+  <div class="card">
+    <h3>Decomposing the drop</h3>
+    <table>
+      <tr><th>Period</th><th class="r">Total Tickets</th><th class="r">Within TAT</th><th class="r">Breached</th><th class="r">TAT %</th></tr>
+      <tr><td>Dec 2025 (Baseline)</td><td class="r">52,969</td><td class="r">41,020</td><td class="r">11,949</td><td class="r"><span class="badge badge-green">77.4%</span></td></tr>
+      <tr><td>Mar-Apr 2026 (Recent)</td><td class="r">51,845</td><td class="r">37,907</td><td class="r">13,938</td><td class="r"><span class="badge badge-red">73.1%</span></td></tr>
+    </table>
+    <div class="insight" style="margin-top:20px">
+      <strong>The gap is 2,243 tickets.</strong> If 2,243 more tickets had been resolved within TAT in the recent period, we would match the Dec baseline of 77.4%. The question is: which partners failed to close these 2,243 tickets?
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>How we measure partner impact (New Definition)</h3>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:12px">We use a <strong>rate-focused metric</strong> instead of the traditional weight&times;rate decomposition:</p>
+    <div style="background:var(--neutral-100);padding:16px 20px;border-radius:8px;font-family:monospace;font-size:14px;margin-bottom:16px">
+      Delta Tickets = (Dec TAT% &minus; Rec TAT%) &times; Recent Tickets
+    </div>
+    <p style="font-size:13px;color:var(--muted)">
+      This answers: <em>"If this partner had maintained their own December performance, how many more tickets would be within TAT?"</em>
+      <br>We use this because LL bucket weight is stable (42.7% &rarr; 41.2%) &mdash; the drop is driven by <strong>rate degradation</strong>, not volume shifts. The old contribution formula conflated weight changes with rate changes, ranking partners who simply had fewer tickets above those whose TAT actually collapsed.
+    </p>
+  </div>
+</section>
+
+<!-- SECTION 2: RISK BUCKETS -->
+<section id="s2">
+  <h2>2. Risk Bucket View — Where is the rate damage?</h2>
+  <p class="desc">Partners split into 6 buckets: HH, HL, LH, LL (from Partner Reset Risk), No Bucket, and EXIT (carved out from all buckets using exit partner list).</p>
+
+  <div class="card">
+    <h3>Rate impact by risk bucket</h3>
+    <table>
+      <tr>
+        <th>Bucket</th><th class="r">Partners</th>
+        <th class="r">Dec Tickets</th><th class="r">Dec TAT</th>
+        <th class="r">Rec Tickets</th><th class="r">Rec TAT</th>
+        <th class="r">Rate &Delta;</th>
+        <th class="r">Gross Damage</th><th class="r">Recovery</th><th class="r">Net Impact</th>
+      </tr>
+      <tr><td><span class="badge badge-green">HH</span></td><td class="r">298</td><td class="r">13,104</td><td class="r">91.7%</td><td class="r">13,429</td><td class="r">90.0%</td><td class="r" style="color:var(--red)">&minus;1.6pp</td><td class="r">+1.15pp</td><td class="r">&minus;0.64pp</td><td class="r">+0.51pp</td></tr>
+      <tr><td><span class="badge badge-green">HL</span></td><td class="r">98</td><td class="r">7,839</td><td class="r">88.1%</td><td class="r">8,845</td><td class="r">88.9%</td><td class="r" style="color:var(--green)">+0.8pp</td><td class="r">+0.49pp</td><td class="r">&minus;0.53pp</td><td class="r" style="color:var(--green)">&minus;0.04pp</td></tr>
+      <tr><td><span class="badge badge-amber">LH</span></td><td class="r">302</td><td class="r">7,436</td><td class="r">76.9%</td><td class="r">7,132</td><td class="r">68.6%</td><td class="r" style="color:var(--red)">&minus;8.4pp</td><td class="r">+1.68pp</td><td class="r">&minus;0.44pp</td><td class="r" style="color:var(--red)"><strong>+1.25pp</strong></td></tr>
+      <tr style="background:#FFF0EE"><td><span class="badge badge-red">LL</span></td><td class="r"><strong>477</strong></td><td class="r"><strong>22,622</strong></td><td class="r"><strong>67.4%</strong></td><td class="r"><strong>21,341</strong></td><td class="r"><strong>59.4%</strong></td><td class="r" style="color:var(--red)"><strong>&minus;8.0pp</strong></td><td class="r"><strong>+5.43pp</strong></td><td class="r"><strong>&minus;1.42pp</strong></td><td class="r" style="color:var(--red)"><strong>+4.02pp</strong></td></tr>
+      <tr><td><span class="badge badge-muted">No Bucket</span></td><td class="r">45</td><td class="r">597</td><td class="r">57.8%</td><td class="r">489</td><td class="r">51.3%</td><td class="r" style="color:var(--red)">&minus;6.5pp</td><td class="r">+0.16pp</td><td class="r">&minus;0.02pp</td><td class="r">+0.13pp</td></tr>
+      <tr><td><span class="badge badge-purple">EXIT</span></td><td class="r">116</td><td class="r">1,371</td><td class="r">57.5%</td><td class="r">609</td><td class="r">22.5%</td><td class="r" style="color:var(--red)">&minus;35.1pp</td><td class="r">+0.41pp</td><td class="r">&minus;0.02pp</td><td class="r">+0.39pp</td></tr>
+    </table>
+    <div class="insight" style="margin-top:16px">
+      <strong>LL drives 64% of all rate damage</strong> (4.02pp of 6.25pp net). EXIT is isolated at 0.39pp &mdash; these 302 winding-down partners are not fixable. HL is the only bucket holding steady.
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 3: WHY LL -->
+<section id="s3">
+  <h2>3. Why LL? It's rate, not weight</h2>
+  <p class="desc">LL bucket weight barely moved (42.7% &rarr; 41.2%). The entire damage is from rate collapse inside the bucket.</p>
+
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-num" style="color:var(--secondary)">42.7%</div><div class="stat-label">Dec weight (stable)</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--secondary)">41.2%</div><div class="stat-label">Rec weight (stable)</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)">67.4% &rarr; 59.4%</div><div class="stat-label">LL rate collapse (&minus;8.0pp)</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)">1,710</div><div class="stat-label">Delta tickets from LL alone</div></div>
+  </div>
+
+  <div class="card">
+    <h3>The math</h3>
+    <table>
+      <tr><th></th><th class="r">Tickets</th><th class="r">Within TAT</th><th class="r">TAT %</th></tr>
+      <tr><td>LL Dec (actual)</td><td class="r">22,622</td><td class="r">15,244</td><td class="r">67.4%</td></tr>
+      <tr><td>LL Rec (actual)</td><td class="r">21,341</td><td class="r">12,671</td><td class="r">59.4%</td></tr>
+      <tr style="background:#FFF0EE"><td>LL Rec (if Dec rate held)</td><td class="r">21,341</td><td class="r">14,381</td><td class="r">67.4%</td></tr>
+    </table>
+    <div class="insight" style="margin-top:16px">
+      <strong>14,381 &minus; 12,671 = 1,710 delta tickets.</strong> LL alone accounts for 76% of the total 2,243 gap. The remaining 24% comes from LH (1.25pp) and other buckets.
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 4: INSTALL GRADIENT -->
+<section id="s4">
+  <h2>4. Install Activity Gradient within LL</h2>
+  <p class="desc">Partners with fewer installs show steeper TAT degradation. 0-install and 1-5 install partners drive nearly all the damage.</p>
+
+  <div class="card">
+    <table>
+      <tr><th>Install Bucket</th><th class="r">Partners</th><th class="r">Dec Tickets</th><th class="r">Dec TAT</th><th class="r">Rec Tickets</th><th class="r">Rec TAT</th><th class="r">Rate &Delta;</th></tr>
+      <tr style="background:#FFF0EE"><td>0 Installs</td><td class="r">303</td><td class="r">9,939</td><td class="r">60.6%</td><td class="r">9,403</td><td class="r">52.2%</td><td class="r" style="color:var(--red)">&minus;8.4pp</td></tr>
+      <tr style="background:#FFF0EE"><td>1&ndash;5 Installs</td><td class="r">130</td><td class="r">8,089</td><td class="r">75.2%</td><td class="r">7,226</td><td class="r">62.7%</td><td class="r" style="color:var(--red)">&minus;12.5pp</td></tr>
+      <tr><td>6&ndash;15 Installs</td><td class="r">37</td><td class="r">3,412</td><td class="r">68.0%</td><td class="r">3,350</td><td class="r">67.3%</td><td class="r" style="color:var(--muted)">&minus;0.7pp</td></tr>
+      <tr><td>16+ Installs</td><td class="r">7</td><td class="r">1,182</td><td class="r">68.9%</td><td class="r">1,362</td><td class="r">71.4%</td><td class="r" style="color:var(--green)">+2.6pp</td></tr>
+    </table>
+    <div class="insight" style="margin-top:16px">
+      <strong>1&ndash;5 install partners have the steepest rate drop (&minus;12.5pp)</strong> despite starting at a much higher baseline (75.2%) than 0-install partners (60.6%). Partners doing 6+ installs are essentially flat or improving &mdash; business activity correlates with service quality.
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 5: CONCENTRATION -->
+<section id="s5">
+  <h2>5. Concentration — It's not universal</h2>
+  <p class="desc">The drop is driven by a concentrated set of partners, not a system-wide degradation.</p>
+
+  <div class="card">
+    <h3>How many partners drive the gap?</h3>
+    <table>
+      <tr><th>Scope</th><th class="r">Partners</th><th class="r">Delta Tickets</th><th class="r">% of Total Gap (2,243)</th></tr>
+      <tr style="background:#FFF0EE"><td><strong>Top 30</strong></td><td class="r">30</td><td class="r"><strong>1,225</strong></td><td class="r"><strong>55%</strong></td></tr>
+      <tr><td>Top 50</td><td class="r">50</td><td class="r">1,601</td><td class="r">71%</td></tr>
+      <tr style="background:#FFF0EE"><td><strong>Top 75</strong></td><td class="r">75</td><td class="r"><strong>1,909</strong></td><td class="r"><strong>85%</strong></td></tr>
+      <tr><td>All 293 degraded</td><td class="r">293</td><td class="r">2,817</td><td class="r">126%*</td></tr>
+      <tr><td>129 improved (offset)</td><td class="r">129</td><td class="r">&minus;735</td><td class="r">&minus;33%</td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--label);margin-top:8px">*Gross damage exceeds 100% because 129 improved partners offset &minus;735 tickets, bringing net to 2,082.</p>
+
+    <div class="callout-red" style="margin-top:16px">
+      <strong>55% of the entire Service Px SLA drop sits in just 30 partners.</strong> Fix these 30 and overall TAT recovers from 73.1% to 75.5%. Expand to 75 partners to cover 85%.
+    </div>
+  </div>
+</section>
+
+<!-- SECTION 6: TOP 30 -->
+<section id="s6">
+  <h2>6. The Top 30 Partners</h2>
+  <p class="desc">These 30 LL partners collectively went from 82.5% to 51.5% TAT (&minus;31pp). They failed to close 1,225 tickets within TAT that they would have closed at their own December performance.</p>
+
+  <div class="card" style="overflow-x:auto">
+    <table>
+      <tr>
+        <th>#</th><th>Partner Name</th><th class="r">Inst</th>
+        <th class="r">Dec Tkt</th><th class="r">Dec TAT</th>
+        <th class="r">Rec Tkt</th><th class="r">Rec TAT</th>
+        <th class="r">Rate Drop</th>
+        <th class="r">Delta Tkt</th><th class="r">% Gap</th><th>Fraud</th>
+      </tr>
+      <tr><td>1</td><td>SWASTIK CABLE NETWORK PVT. LTD.</td><td class="r">0</td><td class="r">108</td><td class="r">86.1%</td><td class="r">350</td><td class="r"><span class="badge badge-red">63.4%</span></td><td class="r">+22.7pp</td><td class="r"><strong>79</strong></td><td class="r">3.5%</td><td><span class="fraud-dot"></span>5</td></tr>
+      <tr><td>2</td><td>INDIANET BROADBAND</td><td class="r">3</td><td class="r">497</td><td class="r">76.1%</td><td class="r">171</td><td class="r"><span class="badge badge-red">29.8%</span></td><td class="r">+46.2pp</td><td class="r"><strong>79</strong></td><td class="r">3.5%</td><td><span class="fraud-dot"></span>1</td></tr>
+      <tr><td>3</td><td>Gold Digital Network</td><td class="r">0</td><td class="r">26</td><td class="r">88.5%</td><td class="r">105</td><td class="r"><span class="badge badge-red">16.2%</span></td><td class="r">+72.3pp</td><td class="r"><strong>76</strong></td><td class="r">3.4%</td><td><span class="fraud-dot"></span>5</td></tr>
+      <tr><td>4</td><td>Net Connect</td><td class="r">1</td><td class="r">217</td><td class="r">86.2%</td><td class="r">195</td><td class="r"><span class="badge badge-red">48.2%</span></td><td class="r">+38.0pp</td><td class="r"><strong>74</strong></td><td class="r">3.3%</td><td><span class="fraud-dot"></span>99</td></tr>
+      <tr><td>5</td><td>HI-FI Broadband Services</td><td class="r">0</td><td class="r">122</td><td class="r">91.0%</td><td class="r">145</td><td class="r"><span class="badge badge-red">49.0%</span></td><td class="r">+42.0pp</td><td class="r"><strong>61</strong></td><td class="r">2.7%</td><td>&mdash;</td></tr>
+      <tr><td>6</td><td>GK Cable TV &amp; Internet (Mahavir Enclave)</td><td class="r">0</td><td class="r">179</td><td class="r">89.4%</td><td class="r">235</td><td class="r"><span class="badge badge-red">63.8%</span></td><td class="r">+25.6pp</td><td class="r"><strong>60</strong></td><td class="r">2.7%</td><td><span class="fraud-dot"></span>7</td></tr>
+      <tr><td>7</td><td>Shiva Cable Network Bareilly</td><td class="r">0</td><td class="r">147</td><td class="r">68.0%</td><td class="r">117</td><td class="r"><span class="badge badge-red">20.5%</span></td><td class="r">+47.5pp</td><td class="r"><strong>56</strong></td><td class="r">2.5%</td><td><span class="fraud-dot"></span>11</td></tr>
+      <tr><td>8</td><td>JYOTI CABLE</td><td class="r">1</td><td class="r">52</td><td class="r">80.8%</td><td class="r">142</td><td class="r"><span class="badge badge-red">43.0%</span></td><td class="r">+37.8pp</td><td class="r"><strong>54</strong></td><td class="r">2.4%</td><td><span class="fraud-dot"></span>2</td></tr>
+      <tr><td>9</td><td>Priyanka infosolution</td><td class="r">0</td><td class="r">48</td><td class="r">70.8%</td><td class="r">78</td><td class="r"><span class="badge badge-red">12.8%</span></td><td class="r">+58.0pp</td><td class="r"><strong>45</strong></td><td class="r">2.0%</td><td><span class="fraud-dot"></span>7</td></tr>
+      <tr><td>10</td><td>AARUSH BROADBAND</td><td class="r">16</td><td class="r">113</td><td class="r">80.5%</td><td class="r">135</td><td class="r"><span class="badge badge-red">49.6%</span></td><td class="r">+30.9pp</td><td class="r"><strong>42</strong></td><td class="r">1.9%</td><td>&mdash;</td></tr>
+      <tr><td>11</td><td>RRRV Enterprise</td><td class="r">0</td><td class="r">133</td><td class="r">91.7%</td><td class="r">83</td><td class="r"><span class="badge badge-red">42.2%</span></td><td class="r">+49.6pp</td><td class="r"><strong>41</strong></td><td class="r">1.8%</td><td><span class="fraud-dot"></span>1</td></tr>
+      <tr><td>12</td><td>Fairy Communication</td><td class="r">0</td><td class="r">82</td><td class="r">93.9%</td><td class="r">108</td><td class="r"><span class="badge badge-red">57.4%</span></td><td class="r">+36.5pp</td><td class="r"><strong>39</strong></td><td class="r">1.8%</td><td>&mdash;</td></tr>
+      <tr><td>13</td><td>Nishu Broadband</td><td class="r">6</td><td class="r">267</td><td class="r">91.4%</td><td class="r">260</td><td class="r"><span class="badge badge-amber">77.3%</span></td><td class="r">+14.1pp</td><td class="r"><strong>37</strong></td><td class="r">1.6%</td><td><span class="fraud-dot"></span>4</td></tr>
+      <tr><td>14</td><td>Shalu Cable Network</td><td class="r">0</td><td class="r">94</td><td class="r">70.2%</td><td class="r">80</td><td class="r"><span class="badge badge-red">25.0%</span></td><td class="r">+45.2pp</td><td class="r"><strong>36</strong></td><td class="r">1.6%</td><td>&mdash;</td></tr>
+      <tr><td>15</td><td>Jai Shakti Cable TV Network</td><td class="r">4</td><td class="r">31</td><td class="r">83.9%</td><td class="r">60</td><td class="r"><span class="badge badge-red">25.0%</span></td><td class="r">+58.9pp</td><td class="r"><strong>35</strong></td><td class="r">1.6%</td><td><span class="fraud-dot"></span>15</td></tr>
+      <tr><td>16</td><td>Tiranga Net</td><td class="r">5</td><td class="r">21</td><td class="r">100.0%</td><td class="r">73</td><td class="r"><span class="badge badge-red">52.1%</span></td><td class="r">+47.9pp</td><td class="r"><strong>35</strong></td><td class="r">1.6%</td><td>&mdash;</td></tr>
+      <tr><td>17</td><td>Tinku Internet</td><td class="r">2</td><td class="r">92</td><td class="r">93.5%</td><td class="r">106</td><td class="r"><span class="badge badge-red">61.3%</span></td><td class="r">+32.2pp</td><td class="r"><strong>34</strong></td><td class="r">1.5%</td><td><span class="fraud-dot"></span>1</td></tr>
+      <tr><td>18</td><td>Siddhi Broadband Services</td><td class="r">1</td><td class="r">86</td><td class="r">87.2%</td><td class="r">143</td><td class="r"><span class="badge badge-red">63.6%</span></td><td class="r">+23.6pp</td><td class="r"><strong>34</strong></td><td class="r">1.5%</td><td>&mdash;</td></tr>
+      <tr><td>19</td><td>Sigma Network</td><td class="r">14</td><td class="r">325</td><td class="r">65.8%</td><td class="r">433</td><td class="r"><span class="badge badge-red">58.4%</span></td><td class="r">+7.4pp</td><td class="r"><strong>32</strong></td><td class="r">1.4%</td><td><span class="fraud-dot"></span>7</td></tr>
+      <tr><td>20</td><td>Radha Cable TV Network</td><td class="r">4</td><td class="r">50</td><td class="r">88.0%</td><td class="r">100</td><td class="r"><span class="badge badge-red">58.0%</span></td><td class="r">+30.0pp</td><td class="r"><strong>30</strong></td><td class="r">1.3%</td><td><span class="fraud-dot"></span>1</td></tr>
+      <tr><td>21</td><td>Gaurav Cable Network</td><td class="r">3</td><td class="r">100</td><td class="r">71.0%</td><td class="r">156</td><td class="r"><span class="badge badge-red">53.2%</span></td><td class="r">+17.8pp</td><td class="r"><strong>28</strong></td><td class="r">1.2%</td><td>&mdash;</td></tr>
+      <tr><td>22</td><td>Easy Network</td><td class="r">1</td><td class="r">221</td><td class="r">94.6%</td><td class="r">123</td><td class="r"><span class="badge badge-amber">73.2%</span></td><td class="r">+21.4pp</td><td class="r"><strong>26</strong></td><td class="r">1.2%</td><td><span class="fraud-dot"></span>3</td></tr>
+      <tr><td>23</td><td>Rudra Enterprises - Malad East</td><td class="r">0</td><td class="r">53</td><td class="r">94.3%</td><td class="r">34</td><td class="r"><span class="badge badge-red">17.6%</span></td><td class="r">+76.7pp</td><td class="r"><strong>26</strong></td><td class="r">1.2%</td><td><span class="fraud-dot"></span>1</td></tr>
+      <tr><td>24</td><td>Super Cable Internet</td><td class="r">0</td><td class="r">13</td><td class="r">84.6%</td><td class="r">45</td><td class="r"><span class="badge badge-red">28.9%</span></td><td class="r">+55.7pp</td><td class="r"><strong>25</strong></td><td class="r">1.1%</td><td><span class="fraud-dot"></span>11</td></tr>
+      <tr><td>25</td><td>7R Network Solutions</td><td class="r">0</td><td class="r">26</td><td class="r">92.3%</td><td class="r">43</td><td class="r"><span class="badge badge-red">34.9%</span></td><td class="r">+57.4pp</td><td class="r"><strong>25</strong></td><td class="r">1.1%</td><td><span class="fraud-dot"></span>1</td></tr>
+      <tr><td>26</td><td>Shree Sai Net</td><td class="r">3</td><td class="r">63</td><td class="r">88.9%</td><td class="r">60</td><td class="r"><span class="badge badge-red">48.3%</span></td><td class="r">+40.6pp</td><td class="r"><strong>24</strong></td><td class="r">1.1%</td><td><span class="fraud-dot"></span>6</td></tr>
+      <tr><td>27</td><td>Jai Binsar Network</td><td class="r">3</td><td class="r">54</td><td class="r">87.0%</td><td class="r">133</td><td class="r"><span class="badge badge-red">69.2%</span></td><td class="r">+17.9pp</td><td class="r"><strong>24</strong></td><td class="r">1.1%</td><td><span class="fraud-dot"></span>15</td></tr>
+      <tr><td>28</td><td>King Cable &amp; TV Network</td><td class="r">1</td><td class="r">65</td><td class="r">66.2%</td><td class="r">41</td><td class="r"><span class="badge badge-red">9.8%</span></td><td class="r">+56.4pp</td><td class="r"><strong>23</strong></td><td class="r">1.0%</td><td>&mdash;</td></tr>
+      <tr><td>29</td><td>Shree Ganesh Internet Service</td><td class="r">0</td><td class="r">21</td><td class="r">95.2%</td><td class="r">29</td><td class="r"><span class="badge badge-red">17.2%</span></td><td class="r">+78.0pp</td><td class="r"><strong>23</strong></td><td class="r">1.0%</td><td><span class="fraud-dot"></span>6</td></tr>
+      <tr><td>30</td><td>J4U Enterprises</td><td class="r">0</td><td class="r">68</td><td class="r">86.8%</td><td class="r">75</td><td class="r"><span class="badge badge-red">57.3%</span></td><td class="r">+29.4pp</td><td class="r"><strong>22</strong></td><td class="r">1.0%</td><td>&mdash;</td></tr>
+      <tr class="total-row"><td></td><td>TOTAL (Top 30)</td><td class="r"></td><td class="r">3,374</td><td class="r">82.5%</td><td class="r">3,858</td><td class="r">51.5%</td><td class="r">&minus;31.1pp</td><td class="r"><strong>1,225</strong></td><td class="r"><strong>54.6%</strong></td><td></td></tr>
+    </table>
+    <p style="font-size:12px;color:var(--label);margin-top:8px"><span class="fraud-dot"></span> = fraud records found. Number shows count of fraud incidents.</p>
+  </div>
+</section>
+
+<!-- SECTION 7: FRAUD + PTL -->
+<section id="s7">
+  <h2>7. Fraud &amp; PTL Signal — Disengaged, not struggling</h2>
+  <p class="desc">Cross-referencing the top 30 with fraud records and partner helpline (PTL) calls reveals a clear pattern of deliberate neglect.</p>
+
+  <div class="two-col">
+    <div class="card">
+      <h3>Fraud records overlay</h3>
+      <div class="stat-grid" style="grid-template-columns:1fr 1fr">
+        <div class="stat-card"><div class="stat-num" style="color:var(--red)">22/30</div><div class="stat-label">Have fraud records (73%)</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--red)">99</div><div class="stat-label">Net Connect alone</div></div>
+      </div>
+      <table style="margin-top:12px">
+        <tr><th>Fraud Type</th><th class="r">Prevalence</th></tr>
+        <tr><td>Disintermediation (pitching/putting non-Wiom)</td><td class="r">Most common</td></tr>
+        <tr><td>Extra Money Charged to customers</td><td class="r">High</td></tr>
+        <tr><td>Misbehaviour with Customers</td><td class="r">High</td></tr>
+        <tr><td>Fake Installs</td><td class="r">Occasional</td></tr>
+        <tr><td>Unauthorized Router Collection</td><td class="r">Occasional</td></tr>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>PTL (Partner Helpline) calls</h3>
+      <div class="stat-grid" style="grid-template-columns:1fr 1fr">
+        <div class="stat-card"><div class="stat-num" style="color:var(--amber)">13/30</div><div class="stat-label">Zero PTL calls in 30 days</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--amber)">42</div><div class="stat-label">Total PTL tickets (all 30)</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--muted);margin-top:12px">
+        The 17 who did call asked about: device swap help, PPPoE IDs, commission queries, app login &mdash; <strong>basic operational questions</strong>. Nobody is asking about service quality or TAT improvement.
+      </p>
+    </div>
+  </div>
+
+  <div class="callout-red">
+    <strong>These are not partners struggling with operations and calling for help.</strong> 73% have fraud records. 43% never called PTL in 30 days. They are disengaged from service while actively running fraud schemes (disintermediation, extra money, misbehaviour). The TAT collapse is a symptom of deliberate neglect.
+  </div>
+</section>
+
+<!-- SECTION 8: COUNTERFACTUAL -->
+<section id="s8">
+  <h2>8. Counterfactual — What if we fix them?</h2>
+  <p class="desc">If these partners had simply maintained their own December performance levels, how much of the drop would we recover?</p>
+
+  <div class="card">
+    <table>
+      <tr><th>Scenario</th><th class="r">Overall TAT</th><th class="r">Gap Recovered</th><th class="r">% of 4.33pp</th></tr>
+      <tr><td>Actual (today)</td><td class="r"><span class="badge badge-red">73.12%</span></td><td class="r">&mdash;</td><td class="r">&mdash;</td></tr>
+      <tr style="background:#FFF0EE"><td><strong>If Top 30 at Dec rate</strong></td><td class="r"><strong>75.48%</strong></td><td class="r"><strong>+2.36pp</strong></td><td class="r"><strong>55%</strong></td></tr>
+      <tr><td>If Top 50 at Dec rate</td><td class="r">76.20%</td><td class="r">+3.09pp</td><td class="r">71%</td></tr>
+      <tr style="background:#E8F8EE"><td><strong>If Top 75 at Dec rate</strong></td><td class="r"><strong>76.80%</strong></td><td class="r"><strong>+3.68pp</strong></td><td class="r"><strong>85%</strong></td></tr>
+      <tr><td>Dec baseline (target)</td><td class="r"><span class="badge badge-green">77.44%</span></td><td class="r">+4.33pp</td><td class="r">100%</td></tr>
+    </table>
+  </div>
+
+  <div class="insight">
+    <strong>Just 30 partners recovering to their own December level would bring overall TAT from 73.1% to 75.5%.</strong> Expanding to 75 partners covers 85% of the gap. These are not aspirational targets &mdash; these are performance levels the same partners were delivering 4 months ago.
+  </div>
+</section>
+
+<!-- SECTION 9: RECOMMENDATIONS -->
+<div class="conclusion" id="s9">
+  <h2>9. Recommendations</h2>
+  <div style="margin-top:20px">
+    <p><strong style="color:#FF6B6B">Immediate (Top 30 &mdash; recovers 55% of drop)</strong></p>
+    <ul style="margin:8px 0 20px 20px">
+      <li>Fraud review + performance warnings for the 22 partners with fraud records</li>
+      <li>Net Connect (99 fraud incidents) needs escalation to risk team</li>
+      <li>These 30 partners have been identified with partner IDs &mdash; lists exported for action</li>
+    </ul>
+
+    <p><strong style="color:#FF8000">Short-term (Top 75 &mdash; recovers 85% of drop)</strong></p>
+    <ul style="margin:8px 0 20px 20px">
+      <li>Expand intervention to top 75 partners (list exported)</li>
+      <li>Investigate the 106 gradual degraders (&minus;1.59pp) &mdash; this cohort suggests systemic friction, not just individual failure</li>
+    </ul>
+
+    <p><strong style="color:#69DB7C">Structural</strong></p>
+    <ul style="margin:8px 0 20px 20px">
+      <li>Install activity correlates with service quality &mdash; partners doing 6+ installs are flat/improving; 0-install partners are collapsing</li>
+      <li>EXIT bucket (302 partners, &minus;0.39pp) is not recoverable &mdash; exclude from TAT targets and operational effort</li>
+      <li>Protect the 75 recovering partners (+0.70pp offset) who are helping absorb the damage</li>
+    </ul>
+  </div>
+</div>
+
+</div>
+
+<footer>
+  Service-Px TAT RCA &bull; Data: Metabase (DB 113), Kapture CRM, Fraud & Risk Management &bull; Periods: Dec 01&ndash;28, 2025 vs Mar 16&ndash;Apr 12, 2026 &bull; Generated Apr 2026
+</footer>
+
+</body>
+</html>
