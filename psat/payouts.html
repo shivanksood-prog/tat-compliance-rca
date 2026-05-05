@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Detail · Payouts &amp; Bonus Claims Not Credited (L2 · 3d)</title>
+<style>
+  :root{
+    --bg:#FAF9FC; --card:#FFFFFF; --border:#D7D3E0; --text:#161021; --muted:#665E75;
+    --accent:#D9008D; --accent-soft:#FFE5F6; --accent-300:#FFB2E4;
+    --secondary:#443152; --neutral-100:#F1EDF7;
+    --green:#008043; --green-soft:#E1FAED;
+    --red:#E01E00; --red-soft:#FFE9E5;
+    --amber:#FF8000; --amber-soft:#FFE6CC;
+    --purple:#6D17CE; --purple-soft:#F1E5FF;
+  }
+  *{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:32px;line-height:1.5}
+  .container{max-width:1240px;margin:0 auto}
+  .hero{background:linear-gradient(135deg,#D9008D 0%,#6D17CE 100%);color:#fff;padding:28px 32px;border-radius:14px;margin-bottom:24px}
+  .hero .crumb{font-size:12px;opacity:0.85;margin-bottom:8px}
+  .hero .crumb a{color:#FFE5F6;text-decoration:none}
+  .hero h1{margin:0 0 6px;font-size:24px;font-weight:700;letter-spacing:-0.3px}
+  .hero p{margin:0;font-size:14px;opacity:0.92}
+  .pill{display:inline-block;background:rgba(255,255,255,0.18);color:#fff;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;margin-right:6px}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+  .kpi{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px}
+  .kpi .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;font-weight:600}
+  .kpi .value{font-size:26px;font-weight:700;color:var(--text);margin-top:4px;line-height:1}
+  .kpi .sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+  .callout{background:var(--red-soft);border-left:4px solid var(--red);padding:14px 18px;border-radius:8px;margin-bottom:24px}
+  .callout h3{margin:0 0 4px;font-size:14px;color:var(--red);font-weight:700}
+  .callout p{margin:0;color:var(--secondary);font-size:13px}
+
+  .sub-section{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+  .sub-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .sub-head h2{margin:0;font-size:18px;color:var(--secondary)}
+  .sub-head .count{background:var(--accent-soft);color:var(--accent);padding:3px 10px;border-radius:999px;font-size:12px;font-weight:600}
+  .sub-summary{color:var(--muted);font-size:13px;margin:0 0 14px}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{background:var(--neutral-100);text-align:left;padding:9px 10px;font-weight:600;color:var(--secondary);border-bottom:1px solid var(--border);font-size:11px;text-transform:uppercase;letter-spacing:0.4px;white-space:nowrap}
+  td{padding:10px;border-bottom:1px solid var(--border);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  tr:hover{background:var(--neutral-100)}
+  .phone{font-family:ui-monospace,Menlo,monospace;color:var(--accent);font-weight:600;white-space:nowrap}
+  .ticket{font-family:ui-monospace,Menlo,monospace;color:var(--muted);font-size:11px;white-space:nowrap}
+  .date{font-size:11px;color:var(--muted);white-space:nowrap}
+  .quote{color:var(--text);font-size:13px;line-height:1.5}
+  .px-note{color:var(--red);font-size:12px;font-style:italic;margin-top:4px;display:block}
+  .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;white-space:nowrap}
+  .b-red{background:var(--red-soft);color:var(--red)}
+  .b-amber{background:var(--amber-soft);color:var(--amber)}
+  .b-purple{background:var(--purple-soft);color:var(--purple)}
+  .b-grey{background:var(--neutral-100);color:var(--secondary)}
+
+  .action-card{background:var(--purple-soft);border:1px solid #D9C2FA;border-radius:12px;padding:18px 22px;margin-top:24px}
+  .action-card h3{margin:0 0 10px;color:var(--purple);font-size:15px}
+  .action-card ul{margin:0;padding-left:20px}
+  .action-card li{font-size:13px;color:var(--secondary);margin-bottom:6px}
+  .action-card li b{color:var(--text)}
+
+  .footer{margin-top:24px;color:var(--muted);font-size:11px;text-align:center}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <div class="crumb"><a href="./">← PSAT 3-day buckets</a> · L2 · drill-down</div>
+    <div><span class="pill">L2</span><span class="pill">02–04 May 2026</span><span class="pill">10 dissat calls</span></div>
+    <h1>Payouts &amp; Bonus claims — not credited</h1>
+    <p>The biggest single L2 dissat cluster. CX has paid, partner hasn't been paid — or monthly bonuses missed the 1st-of-month run.</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi"><div class="label">Calls</div><div class="value">10</div><div class="sub">~23% of all L2 dissat</div></div>
+    <div class="kpi"><div class="label">CX recharged · partner unpaid</div><div class="value" style="color:var(--red)">7</div><div class="sub">incl. one 58-CX backlog</div></div>
+    <div class="kpi"><div class="label">Bonus / Rating claims</div><div class="value" style="color:var(--amber)">3</div><div class="sub">service / rating / 1st-of-month</div></div>
+    <div class="kpi"><div class="label">All flagged "PX gap"</div><div class="value" style="color:var(--purple)">10/10</div><div class="sub">prior PX ticket not closed</div></div>
+  </div>
+
+  <div class="callout">
+    <h3>Why this bucket matters</h3>
+    <p>One partner (9711111749) reports <b>58 CX whose payouts are unsettled</b> — they've paid from their own pocket via ISP and still haven't been reimbursed. Another (8433504001) cites 6 CX. These aren't single-CX glitches; they are batch reconciliation failures that compound week-over-week.</p>
+  </div>
+
+  <!-- ========== Sub-theme 1 ========== -->
+  <div class="sub-section">
+    <div class="sub-head">
+      <h2>Sub-theme A · CX recharged → partner-side payout missing</h2>
+      <span class="count">7 calls</span>
+    </div>
+    <p class="sub-summary">CX has paid. The amount either deducted from CX wallet or via QR/ISP. Partner system shows nothing. CX-care response when CX called is "24 hours mein theek ho jayega" — that line is appearing repeatedly.</p>
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Partner</th><th>Tier</th><th>What partner said</th><th>Severity</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="date">04/05/2026</td>
+          <td><span class="phone">9711111749</span><div class="ticket">777899980834</div></td>
+          <td><span class="badge b-grey">LH</span></td>
+          <td><div class="quote">"58 customer hai jinka payout nahi aaya hai, mujhe settle nahi hua hai. CX recharge bhi kar liya hai, maine apni taraf se bhi ISP se kar diya, but settle nahi kar paya hu."</div><span class="px-note">PX: resolution nahi hua abhi tak</span></td>
+          <td><span class="badge b-red">Critical</span></td>
+        </tr>
+        <tr>
+          <td class="date">03/05/2026</td>
+          <td><span class="phone">8433504001</span><div class="ticket">777807653688</div></td>
+          <td><span class="badge b-grey">HH</span></td>
+          <td><div class="quote">"Mujhe ISP payout nahi mila hai 6 CX ka."</div><span class="px-note">PX: problem solve nahi ho rahi</span></td>
+          <td><span class="badge b-red">Critical</span></td>
+        </tr>
+        <tr>
+          <td class="date">04/05/2026</td>
+          <td><span class="phone">8881824334</span><div class="ticket">777898215729</div></td>
+          <td><span class="badge b-grey">HH</span></td>
+          <td><div class="quote">"CX ne kal recharge kiya tha, but abhi tak system mein show nahi ho raha. CX-support se bola ja raha 24 hours mein theek hoga."</div><span class="px-note">PX: resolution nahi hua abhi tak · also flagged on 02/05 (NewProject ₹2000 deduction)</span></td>
+          <td><span class="badge b-red">Critical</span></td>
+        </tr>
+        <tr>
+          <td class="date">03/05/2026</td>
+          <td><span class="phone">7065502283</span><div class="ticket">777812936124</div></td>
+          <td><span class="badge b-grey">HH</span></td>
+          <td><div class="quote">"Ek CX hai jinhone recharge kiya hai, lekin wo system mein reflect nahi ho raha."</div><span class="px-note">PX: problem solve nahi ho rahi</span></td>
+          <td><span class="badge b-amber">High</span></td>
+        </tr>
+        <tr>
+          <td class="date">03/05/2026</td>
+          <td><span class="phone">7042852512</span><div class="ticket">777789974247</div></td>
+          <td><span class="badge b-grey">HH</span></td>
+          <td><div class="quote">"Customer ka amount deduct ho gaya hai, but recharge nahi hua. CX-care se koi update nahi mil raha."</div><span class="px-note">PX: problem solve nahi ho rahi</span></td>
+          <td><span class="badge b-amber">High</span></td>
+        </tr>
+        <tr>
+          <td class="date">02/05/2026</td>
+          <td><span class="phone">9711101197</span><div class="ticket">777620896963</div></td>
+          <td><span class="badge b-grey">HH</span></td>
+          <td><div class="quote">"CX ne recharge kiya hai 3 din pehle, mere paas payout nahi aaya hai."</div><span class="px-note">PX: ne reason nahi diya</span></td>
+          <td><span class="badge b-amber">High</span></td>
+        </tr>
+        <tr>
+          <td class="date">02/05/2026</td>
+          <td><span class="phone">9310384817</span><div class="ticket">777704440047</div></td>
+          <td><span class="badge b-grey">HH</span></td>
+          <td><div class="quote">"CX ne recharge kiya hai, payout nahi aaya hai."</div><span class="px-note">PX: ne reason nahi diya</span></td>
+          <td><span class="badge b-amber">High</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== Sub-theme 2 ========== -->
+  <div class="sub-section">
+    <div class="sub-head">
+      <h2>Sub-theme B · Bonus &amp; Rating claims missing on 1st-of-month run</h2>
+      <span class="count">3 calls</span>
+    </div>
+    <p class="sub-summary">Monthly bonus run that hits on 1st of every month — partial credits. Some partners got only the pickup-bonus, not service/rating. App "Claim" tile not showing the bonus at all.</p>
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Partner</th><th>Tier</th><th>What partner said</th><th>Severity</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="date">04/05/2026</td>
+          <td><span class="phone">8860921014</span><div class="ticket">777886093139</div></td>
+          <td><span class="badge b-grey">LH</span></td>
+          <td><div class="quote">"1 tareekh ko jo bonus aata hai, usme sirf ek hi aaya hai — sirf pickup-bonus. Doosra (service) nahi aaya."</div><span class="px-note">PX: resolution nahi hua abhi tak</span></td>
+          <td><span class="badge b-amber">High</span></td>
+        </tr>
+        <tr>
+          <td class="date">04/05/2026</td>
+          <td><span class="phone">7291045212</span><div class="ticket">777618659038</div></td>
+          <td><span class="badge b-grey">LH</span></td>
+          <td><div class="quote">"Service bonus nahi aaya hai, aaj aana tha. Please check."</div><span class="px-note">PX: resolution nahi hua abhi tak</span></td>
+          <td><span class="badge b-amber">High</span></td>
+        </tr>
+        <tr>
+          <td class="date">02/05/2026</td>
+          <td><span class="phone">8237015185</span><div class="ticket">777701673535</div></td>
+          <td><span class="badge b-grey">LH</span></td>
+          <td><div class="quote">"Mujhe abhi tak apna rating aur service bonus nahi mila hai. App mein 'Claim' show nahi ho raha."</div><span class="px-note">PX: problem solve nahi ho rahi</span></td>
+          <td><span class="badge b-amber">High</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== Patterns ========== -->
+  <div class="sub-section">
+    <div class="sub-head">
+      <h2>Patterns across the 10 calls</h2>
+    </div>
+    <table>
+      <thead><tr><th style="width:30%">Pattern</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>Backlog scale</b></td>
+          <td>2 of the 7 CX-recharge cases reference batches: <b>58 CX</b> (9711111749) and <b>6 CX</b> (8433504001). Implies a reconciliation feed gap, not 1-off transactions.</td>
+        </tr>
+        <tr>
+          <td><b>"24 hours mein theek hoga"</b></td>
+          <td>CX-care response when CX phones in (8881824334). If the actual SLA is &gt;24 hr, this script needs to change — partner becomes the wedge.</td>
+        </tr>
+        <tr>
+          <td><b>Tier skew</b></td>
+          <td>CX-recharge payout = mostly HH partners (high revenue, high health). Bonus claims = all LH (low health). HH expects fast money; LH is already fragile.</td>
+        </tr>
+        <tr>
+          <td><b>Recurrent partners</b></td>
+          <td>8881824334 appears here AND in NewProject ₹2000 deduction bucket — same partner hit by both money issues simultaneously.</td>
+        </tr>
+        <tr>
+          <td><b>Partner self-funding</b></td>
+          <td>9711111749: <i>"maine apni taraf se bhi ISP se kar diya"</i> — partner paid out-of-pocket to keep CX live, still no reimbursement. This is the highest churn-risk signal in the bucket.</td>
+        </tr>
+        <tr>
+          <td><b>App "Claim" UX</b></td>
+          <td>8237015185: bonus claim tile not showing. Even if money is credited correctly, missing UI = perceived non-payment.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ========== Actions ========== -->
+  <div class="action-card">
+    <h3>Recommended actions</h3>
+    <ul>
+      <li><b>Run an L2 payout reconciliation sweep</b> across the 10 partner accounts above; settle balances within 48 hr and notify partner-side via app.</li>
+      <li><b>Owner-call to 9711111749</b> (58 CX backlog, paid out-of-pocket) — this case alone justifies PSM-level intervention.</li>
+      <li><b>Audit the 1st-of-month bonus run</b> — partials suggest one of {pickup, service, rating} streams failed to merge. Compare 1-May run output to expected list.</li>
+      <li><b>Replace CX-care script "24 hours mein theek hoga"</b> with a TAT-aligned commitment + ticket ID, so the partner can track instead of re-calling.</li>
+      <li><b>App "Claim" tile</b> — show all 3 bonus components separately even when value = 0, so partners stop calling to ask "claim show nahi ho raha".</li>
+      <li><b>PX team:</b> all 10 tickets have a prior PX touch that didn't close — root-cause why CX-recharge payout tickets keep getting closed without reason.</li>
+    </ul>
+  </div>
+
+  <div class="footer">PSAT Dissat · L2 · Payouts &amp; Bonus drilldown · 10 calls · 02–04 May 2026</div>
+</div>
+</body>
+</html>
