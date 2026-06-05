@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiom TV — Customer Calling Script</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brand:#D9008D; --brand-2:#443152; --brand-300:#FFB2E4; --brand-100:#FFE5F6;
+    --n900:#161021; --n700:#665E75; --n500:#A7A1B2; --n300:#D7D3E0; --n100:#F1EDF7; --white:#FAF9FC;
+    --green:#008043; --green-bg:#E1FAED; --red:#E01E00; --red-bg:#FFE9E5;
+    --amber:#FF8000; --amber-bg:#FFE6CC; --purple:#6D17CE; --purple-bg:#F1E5FF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--white); color:var(--n900);
+    font-family:'Inter','Noto Sans Devanagari',system-ui,sans-serif;
+    line-height:1.55; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:880px; margin:0 auto; padding:32px 24px 96px;}
+
+  /* Hero */
+  .hero{
+    background:linear-gradient(120deg,var(--brand) 0%,#b00074 100%);
+    color:#fff; border-radius:20px; padding:34px 34px 30px; margin-bottom:24px;
+    box-shadow:0 12px 30px -12px rgba(217,0,141,.45);
+  }
+  .hero .eyebrow{font-size:12px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; opacity:.85;}
+  .hero h1{margin:8px 0 6px; font-size:30px; font-weight:800; line-height:1.15;}
+  .hero p{margin:0; font-size:15px; opacity:.95; max-width:640px;}
+  .hero .arc{display:flex; flex-wrap:wrap; gap:8px; margin-top:18px;}
+  .hero .arc span{
+    background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.25);
+    padding:6px 12px; border-radius:999px; font-size:12.5px; font-weight:600;
+  }
+  .hero .arc span b{font-weight:800;}
+
+  /* Rules */
+  .rules{
+    background:var(--brand-100); border:1px solid var(--brand-300); border-radius:16px;
+    padding:22px 24px; margin-bottom:28px;
+  }
+  .rules h2{margin:0 0 4px; font-size:16px; color:var(--brand-2); display:flex; align-items:center; gap:8px;}
+  .rules .sub{font-size:12.5px; color:var(--n700); margin:0 0 14px;}
+  .rules ol{margin:0; padding-left:20px;}
+  .rules li{margin:7px 0; font-size:14px; color:var(--n900);}
+  .rules li b{color:var(--brand-2);}
+
+  /* Section */
+  .sec{margin-bottom:30px;}
+  .sec-head{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+  .sec-num{
+    flex:0 0 auto; width:34px; height:34px; border-radius:10px; background:var(--brand-2);
+    color:#fff; font-weight:800; font-size:15px; display:flex; align-items:center; justify-content:center;
+  }
+  .sec-title{font-size:19px; font-weight:800; color:var(--n900); margin:0; line-height:1.2;}
+  .sec-tag{font-size:12px; font-weight:600; color:var(--brand); display:block; margin-top:2px;}
+
+  /* Question card */
+  .q{
+    background:#fff; border:1px solid var(--n300); border-radius:14px;
+    padding:16px 18px; margin:10px 0; box-shadow:0 2px 8px -6px rgba(22,16,33,.25);
+  }
+  .q .en{font-size:15px; font-weight:600; color:var(--n900); margin:0;}
+  .q .hi{
+    font-family:'Noto Sans Devanagari',sans-serif; font-size:14.5px; color:var(--brand-2);
+    margin:7px 0 0; padding-top:7px; border-top:1px dashed var(--n300); font-weight:500;
+  }
+  .q .hi::before{content:"🗣 "; }
+
+  /* Listener note callout */
+  .note{
+    display:flex; gap:10px; align-items:flex-start;
+    background:var(--purple-bg); border-left:3px solid var(--purple); border-radius:8px;
+    padding:11px 14px; margin:10px 0 2px; font-size:13px; color:#3d2a5c;
+  }
+  .note b{color:var(--purple);}
+  .note .ico{flex:0 0 auto; font-size:15px; line-height:1.3;}
+  .captures{display:flex; flex-wrap:wrap; gap:6px; margin-top:11px; padding-top:9px; border-top:1px dashed var(--n300);}
+  .captures b{font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; color:var(--n500); align-self:center; margin-right:2px;}
+  .captures span{background:var(--brand-100); color:var(--brand-2); border:1px solid var(--brand-300); font-size:11px; font-weight:600; padding:2px 9px; border-radius:999px;}
+  .followup{font-size:12.5px; color:var(--purple); margin:8px 0 0; font-weight:500;}
+  .followup::before{content:"\21B3 follow-up · "; opacity:.7;}
+
+  /* Capture block */
+  .capture{
+    background:var(--green-bg); border:1px solid #b8ebcf; border-radius:16px;
+    padding:22px 24px; margin-top:34px;
+  }
+  .capture h2{margin:0 0 4px; font-size:17px; color:var(--green); display:flex; align-items:center; gap:8px;}
+  .capture .sub{font-size:12.5px; color:var(--n700); margin:0 0 14px;}
+  .capture ul{margin:0; padding-left:4px; list-style:none;}
+  .capture li{
+    font-size:14px; margin:9px 0; padding-left:30px; position:relative; color:var(--n900);
+  }
+  .capture li::before{
+    content:"☐"; position:absolute; left:0; top:-1px; font-size:18px; color:var(--green);
+  }
+  .capture li b{color:#0a5c33;}
+
+  /* CSV / sheet view */
+  .sheet-sec{margin-top:34px;}
+  .sheet-sec h2{margin:0 0 4px; font-size:17px; color:var(--brand-2); display:flex; align-items:center; gap:8px;}
+  .sheet-sec .sub{font-size:12.5px; color:var(--n700); margin:0 0 14px;}
+  .sheet-scroll{
+    overflow-x:auto; border:1px solid var(--n300); border-radius:14px;
+    box-shadow:0 2px 10px -6px rgba(22,16,33,.3); -webkit-overflow-scrolling:touch;
+  }
+  .sheet{border-collapse:separate; border-spacing:0; min-width:1700px; width:100%; font-size:12.5px;}
+  .sheet th, .sheet td{
+    padding:10px 12px; text-align:left; border-bottom:1px solid var(--n300);
+    border-right:1px solid var(--n300); vertical-align:top; white-space:nowrap;
+  }
+  .sheet thead th{
+    background:var(--brand-2); color:#fff; font-weight:600; position:sticky; top:0; z-index:2;
+    white-space:normal; min-width:140px;
+  }
+  .sheet thead th small{display:block; font-weight:400; opacity:.75; font-size:10.5px; margin-top:2px;}
+  .sheet tbody tr:nth-child(even) td{background:var(--n100);}
+  .sheet td.ex{white-space:normal; min-width:200px; color:var(--n700); font-style:italic;}
+  /* frozen first column */
+  .sheet th:first-child, .sheet td:first-child{
+    position:sticky; left:0; z-index:1; min-width:64px; box-shadow:1px 0 0 var(--n300);
+  }
+  .sheet thead th:first-child{z-index:3; background:#332544;}
+  .sheet tbody td:first-child{background:#fff; font-weight:700; color:var(--brand-2);}
+  .sheet tbody tr:nth-child(even) td:first-child{background:var(--n100);}
+  .sheet tr.example td{background:var(--brand-100)!important; color:#5c2348;}
+  .sheet tr.example td:first-child{background:var(--brand-100)!important;}
+  .sheet td.lc,.sheet th.lc{text-align:right; background:#FFF3FA;}
+  .sheet td.wc,.sheet th.wc{text-align:right; background:#F3ECFB;}
+  .sheet td.num,.sheet th.num{text-align:right; font-weight:600;}
+  .sheet tbody tr:nth-child(even) td.lc{background:#ffe9f5;}
+  .sheet tbody tr:nth-child(even) td.wc{background:#ebe1f7;}
+  .sheet thead th.lc{background:#7a2d5e;}
+  .sheet thead th.wc{background:#4d2f73;}
+  .sheet-hint{font-size:11.5px; color:var(--n500); margin:8px 2px 0; display:flex; align-items:center; gap:6px;}
+
+  .footer{margin-top:30px; text-align:center; font-size:12px; color:var(--n500);}
+
+  @media print{
+    body{background:#fff;}
+    .hero{box-shadow:none; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    .q,.rules,.capture,.note,.hero{break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="eyebrow">Wiom TV · Customer Calls</div>
+    <h1>"What's working well?"<br>Calling Script</h1>
+    <p>Find the <b>job</b> Wiom TV is hired to do — the need it fulfils and what users genuinely love — so we can go after the single biggest needle-moving JTBD.</p>
+    <div class="arc">
+      <span><b>JTBD</b> "Switch" interview</span>
+      <span>structured by the <b>Four Forces</b></span>
+      <span>asked with <b>Mom Test</b> discipline</span>
+    </div>
+  </div>
+
+  <!-- GOLDEN RULES -->
+  <div class="rules">
+    <h2>⚑ Golden rules — read before every call</h2>
+    <p class="sub">The discipline matters more than the questions. Break these and the data is noise.</p>
+    <ol>
+      <li><b>Past &amp; specific, never hypothetical.</b> "Tell me about the last time you watched" — not "would you watch more if…". Real memories are data; future opinions are noise.</li>
+      <li><b>Don't pitch, don't lead, don't sell.</b> The moment you explain or defend a feature, the answer is contaminated. Be a curious journalist.</li>
+      <li><b>Let silence work.</b> After they answer, wait. The second sentence is the honest one.</li>
+      <li><b>Dig on emotion &amp; effort.</b> When they light up ("bachche khush") or mention work they did (told a friend, removed cable), stop and ask <b>"why"</b> 2–3 times.</li>
+      <li><b>Anchor every claim to a moment.</b> "I watch daily" → "When exactly? What time? Who was in the room? What did you put on first?"</li>
+      <li><b>Write channel &amp; show names verbatim.</b> Exact titles are the strongest signal of the job.</li>
+    </ol>
+  </div>
+
+  <!-- CORE QUESTIONS -->
+  <div class="sec">
+    <div class="sec-head">
+      <div class="sec-num">Q</div>
+      <div><h3 class="sec-title">6 core questions <span class="sec-tag">lean flow · each bundles several probes · ~10–12 min</span></h3></div>
+    </div>
+    <div class="q">
+      <p class="en">Who all watch TV at home — and before Wiom TV, how did everyone watch TV / shows?</p>
+      <p class="hi">घर में TV कौन-कौन देखता है — और Wiom TV से पहले सब TV या शो कैसे देखते थे? (cable, mobile, YouTube?)</p>
+      <div class="captures"><b>captures</b><span>household</span><span>old way</span></div>
+    </div>
+    <div class="q">
+      <p class="en">Take me back to when you first got Wiom TV — what made you try it, and what were you hoping it would do for the family?</p>
+      <p class="hi">याद कीजिए जब पहली बार Wiom TV लिया — try करने की वजह क्या थी, और परिवार के लिए क्या उम्मीद थी?</p>
+      <div class="captures"><b>captures</b><span>push</span><span>pull</span><span>hoped-for job</span></div>
+    </div>
+    <div class="q">
+      <p class="en">Tell me about the last time you watched — when was it, who was in the room, what did you put on first, and what does everyone enjoy most? <i>(note channels verbatim)</i></p>
+      <p class="hi">पिछली बार जब देखा — कब था, कमरे में कौन था, सबसे पहले क्या लगाया, और सबको सबसे ज़्यादा क्या अच्छा लगता है? (channel के नाम लिखें)</p>
+      <div class="captures"><b>captures</b><span>who / when / what-first</span><span>loved channels</span><span>habit</span></div>
+    </div>
+    <div class="q">
+      <p class="en">What does Wiom TV let you do that you couldn't before — and why does that matter to you?</p>
+      <p class="hi">Wiom TV से ऐसा क्या कर पाते हैं जो पहले नहीं कर पाते थे — और वो आपके लिए क्यों ज़रूरी है?</p>
+      <div class="captures"><b>captures</b><span>the need</span><span>human outcome</span></div>
+    </div>
+    <div class="q">
+      <p class="en">If Wiom TV stopped working tomorrow, what would you do instead — and what would you miss the most?</p>
+      <p class="hi">अगर कल Wiom TV बंद हो जाए, तो उसकी जगह क्या करेंगे — और सबसे ज़्यादा किसकी कमी खलेगी?</p>
+      <p class="followup">Any worry that it might stop or change?  ·  कोई चिंता कि ये बंद/बदल सकता है?</p>
+      <div class="captures"><b>captures</b><span>competitor</span><span>importance</span><span>emotion</span><span>anxiety</span></div>
+    </div>
+    <div class="q">
+      <p class="en">Have you told anyone else about Wiom TV, or changed anything at home because of it — removed cable, moved the TV, bought something?</p>
+      <p class="hi">किसी और को Wiom TV के बारे में बताया, या इसकी वजह से घर में कुछ बदला — cable हटवाया, TV जगह बदली, कुछ खरीदा?</p>
+      <div class="captures"><b>captures</b><span>advocacy</span><span>costly action</span></div>
+    </div>
+    <div class="note"><span class="ico">💡</span><span>The job hides in <b>Q3</b> (who + when + what-first + the feeling word) and <b>Q5</b> (what they'd switch back to + emotion). Push <b>"why is that good for you?"</b> 2–3 times until you hit a human outcome.</span></div>
+  </div>
+
+  <!-- CLOSE -->
+  <div class="sec">
+    <div class="sec-head">
+      <div class="sec-num">✓</div>
+      <div><h3 class="sec-title">Close <span class="sec-tag">open-ended · catch the unexpected</span></h3></div>
+    </div>
+    <div class="q">
+      <p class="en">If you could add one thing to Wiom TV, what would it be? <i>(note it — don't promise anything)</i></p>
+      <p class="hi">अगर एक चीज़ Wiom TV में जोड़ सकते, तो क्या जोड़ते?</p>
+      <div class="captures"><b>captures</b><span>gap</span><span>magic wand</span></div>
+    </div>
+    <div class="q"><p class="en">Anything I didn't ask about that you want to tell me?</p><p class="hi">कुछ और जो मैंने नहीं पूछा पर आप बताना चाहें?</p></div>
+  </div>
+
+  <!-- CAPTURE -->
+  <div class="capture">
+    <h2>✓ After the call — capture immediately (3 min, while fresh)</h2>
+    <p class="sub">Log this for every call. Keep buckets emergent — don't pre-assign categories; themes get mined across all calls later.</p>
+    <ul>
+      <li><b>Job statement:</b> "When ___ (situation), I want to ___ (motivation), so I can ___ (outcome)."</li>
+      <li><b>Old way it replaced</b> + <b>what they'd switch back to</b> (the real competitor)</li>
+      <li><b>Channels / shows named</b> — verbatim</li>
+      <li><b>Strongest emotion word</b> they used (in their language)</li>
+      <li><b>2–3 raw verbatim quotes</b> — don't paraphrase</li>
+      <li><b>Push / Pull / Habit / Anxiety</b> — one line each</li>
+      <li><b>Who watches + when + what-first</b></li>
+    </ul>
+  </div>
+
+  <div class="footer">Wiom TV · EiR Mission · Customer Calls sub-project — start from what's loved, find the job.</div>
+
+</div>
+</body>
+</html>
