@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WIOM — CSP Fundamental Principle Violations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --pink:#E8235A; --pink-dark:#C01847; --pink-light:#FDE8EF; --pink-mid:#F9B8CE;
+    --white:#FFFFFF; --bg:#F7F7F8; --card:#FFFFFF; --border:#EBEBEB;
+    --text:#1A1A1A; --text-2:#555; --text-3:#888;
+    --success:#10B981; --success-bg:#E7F8F1;
+    --warning:#F59E0B; --warning-bg:#FEF3E2;
+    --danger:#EF4444;  --danger-bg:#FDECEC;
+    --info:#3B82F6;    --info-bg:#E8F1FE;
+    --purple:#8B5CF6;  --purple-bg:#F1ECFE;
+    --slate:#64748B;   --orange:#F97316;
+    --radius:10px;
+    --shadow:0 1px 4px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px}
+  ::-webkit-scrollbar{width:9px;height:9px}
+  ::-webkit-scrollbar-thumb{background:#d4d4d8;border-radius:6px}
+
+  /* Header */
+  header{background:var(--white);border-bottom:1px solid var(--border);padding:0 22px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:200}
+  .brand{display:flex;align-items:center;gap:11px}
+  .logo-icon{width:32px;height:32px;background:var(--pink);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
+  .logo-text{font-weight:700;font-size:15px;line-height:1.1}
+  .logo-sub{font-size:11px;color:var(--text-3);font-weight:500}
+  .header-right{display:flex;align-items:center;gap:16px}
+  .role-switch{display:flex;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px}
+  .role-switch button{border:none;background:transparent;font-family:inherit;font-size:12px;font-weight:600;color:var(--text-2);padding:5px 11px;border-radius:6px;cursor:pointer}
+  .role-switch button.active{background:var(--pink);color:#fff}
+  .role-meta{font-size:11px;color:var(--text-3);text-align:right;line-height:1.3}
+  .avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#8B5CF6,#E8235A);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+
+  /* Layout shell */
+  .shell{display:flex;min-height:calc(100vh - 56px)}
+  aside{width:230px;background:var(--white);border-right:1px solid var(--border);padding:16px 12px;flex-shrink:0}
+  .side-label{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--text-3);text-transform:uppercase;padding:6px 10px 8px}
+  .side-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--text-2);cursor:pointer;margin-bottom:2px}
+  .side-item .ic{width:18px;text-align:center}
+  .side-item.active{background:var(--pink-light);color:var(--pink-dark)}
+  .side-item.disabled{color:#bbb;cursor:not-allowed;font-weight:500}
+  .side-item.disabled .soon{margin-left:auto;font-size:9px;background:#f1f1f3;color:#aaa;padding:1px 6px;border-radius:10px;font-weight:700}
+
+  main{flex:1;min-width:0;display:flex;flex-direction:column}
+  nav.tabs{background:var(--white);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:2px}
+  .tab{padding:13px 16px;cursor:pointer;font-weight:600;font-size:13px;color:var(--text-2);border-bottom:2px solid transparent;display:flex;align-items:center;gap:7px}
+  .tab:hover{color:var(--text)}
+  .tab.active{color:var(--pink);border-bottom-color:var(--pink)}
+  .tab .count{background:var(--orange);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:800;min-width:18px;text-align:center}
+  .tab.hidden{display:none}
+  .content{padding:24px;max-width:1180px;width:100%}
+
+  /* Generic */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .pad{padding:20px}
+  h2.page{font-size:19px;font-weight:700;margin-bottom:3px}
+  .page-sub{color:var(--text-3);font-size:13px;margin-bottom:18px}
+  .row{display:flex;gap:16px;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:9px 15px;border-radius:8px;border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;transition:.14s;white-space:nowrap}
+  .btn-primary{background:var(--pink);color:#fff}
+  .btn-primary:hover{background:var(--pink-dark)}
+  .btn-primary:disabled{background:#f3b8cd;cursor:not-allowed}
+  .btn-outline{background:#fff;color:var(--text);border:1.5px solid var(--border)}
+  .btn-outline:hover{border-color:var(--pink);color:var(--pink)}
+  .btn-success{background:var(--success);color:#fff}
+  .btn-success:hover{background:#0e9f6e}
+  .btn-danger{background:#fff;color:var(--danger);border:1.5px solid #f3c4c4}
+  .btn-danger:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+  .btn-ghost{background:transparent;color:var(--text-2);border:none}
+  .btn-sm{padding:6px 11px;font-size:12px}
+
+  label.fld{display:block;font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:6px}
+  label.fld .req{color:var(--pink)}
+  input[type=text],input[type=number],input[type=date],select,textarea{
+    width:100%;font-family:inherit;font-size:13px;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--text)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--pink)}
+  textarea{resize:vertical;min-height:64px}
+  .field{margin-bottom:16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .help{font-size:11.5px;color:var(--text-3);margin-top:5px}
+  .help.valid-proof{color:var(--info);font-weight:600;display:flex;align-items:center;gap:6px}
+
+  /* segmented */
+  .seg{display:inline-flex;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:3px;gap:2px;flex-wrap:wrap}
+  .seg button{border:none;background:transparent;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text-2);padding:7px 13px;border-radius:7px;cursor:pointer}
+  .seg button.active{background:#fff;color:var(--pink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .seg.fp button.active{color:#fff}
+
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+  .b-fp1{background:var(--pink-light);color:var(--pink-dark)}
+  .b-fp2{background:var(--warning-bg);color:#b45309}
+  .b-fp4{background:var(--purple-bg);color:#6d28d9}
+  .b-pending{background:var(--warning-bg);color:#b45309}
+  .b-approved{background:var(--info-bg);color:#1d4ed8}
+  .b-handed{background:var(--purple-bg);color:#6d28d9}
+  .b-recovery{background:var(--success-bg);color:#047857}
+  .b-rejected{background:var(--danger-bg);color:#b91c1c}
+  .b-active{background:var(--success-bg);color:#047857}
+  .b-exit{background:var(--warning-bg);color:#b45309}
+  .b-exited{background:var(--danger-bg);color:#b91c1c}
+
+  /* upload */
+  .drop{border:2px dashed #d9d9de;border-radius:10px;padding:26px;text-align:center;color:var(--text-3);cursor:pointer;transition:.15s;background:#fcfcfd}
+  .drop:hover,.drop.drag{border-color:var(--pink);background:var(--pink-light)}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-size:12px;margin:5px 6px 0 0}
+  .chip.ok{border-color:#bfe9d6;background:var(--success-bg)}
+  .chip.bad{border-color:#f3c4c4;background:var(--danger-bg)}
+  .chip .x{cursor:pointer;color:var(--text-3);font-weight:700}
+
+  .alert{border-radius:9px;padding:13px 15px;font-size:13px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px}
+  .alert .ic{font-size:15px;line-height:1.3}
+  .alert-err{background:var(--danger-bg);border:1px solid #f3c4c4;color:#b91c1c}
+  .alert-ok{background:var(--success-bg);border:1px solid #bfe9d6;color:#047857}
+  .alert ul{margin:5px 0 0 16px}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+  .kpi{background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+  .kpi .lbl{font-size:11.5px;color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.4px}
+  .kpi .val{font-size:27px;font-weight:800;margin-top:6px}
+  .kpi .sub{font-size:11.5px;color:var(--text-3);margin-top:3px}
+  .kpi .accent{color:var(--pink)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;padding:11px 12px;border-bottom:1px solid var(--border)}
+  td{padding:12px;border-bottom:1px solid #f1f1f3;vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#fcfcfd}
+  .num{font-variant-numeric:tabular-nums;font-weight:600}
+  .mono{font-family:ui-monospace,Menlo,monospace;font-size:12px}
+
+  .funnel{display:flex;gap:10px;flex-wrap:wrap;align-items:stretch}
+  .fstep{flex:1;min-width:140px;background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px;position:relative}
+  .fstep .fv{font-size:22px;font-weight:800}
+  .fstep .fl{font-size:11.5px;color:var(--text-3);font-weight:600;margin-top:2px}
+  .fstep .arr{position:absolute;right:-13px;top:50%;transform:translateY(-50%);color:#d4d4d8;font-size:18px;z-index:2}
+
+  /* timeline */
+  .tl{position:relative;margin-left:8px;padding-left:24px}
+  .tl:before{content:"";position:absolute;left:6px;top:6px;bottom:6px;width:2px;background:var(--border)}
+  .tl-item{position:relative;padding:0 0 22px}
+  .tl-dot{position:absolute;left:-24px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--pink)}
+  .tl-dot.exit{border-color:var(--danger);background:var(--danger);box-shadow:0 0 0 4px var(--danger-bg)}
+  .tl-dot.recovery{border-color:var(--success)}
+  .tl-dot.approved{border-color:var(--info)}
+  .tl-dot.rejected{border-color:var(--danger)}
+  .tl-date{font-size:11px;color:var(--text-3);font-weight:600}
+  .tl-title{font-size:13.5px;font-weight:700;margin:2px 0}
+  .tl-meta{font-size:12px;color:var(--text-2)}
+  .tl-item.exitcard{background:var(--warning-bg);border:1px solid #f3d9a8;border-radius:10px;padding:12px 14px;margin-left:-8px}
+
+  .muted{color:var(--text-3)}
+  .link{color:var(--info);font-weight:600;cursor:pointer;text-decoration:none}
+  .link:hover{text-decoration:underline}
+  .sectiontitle{font-size:14px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+  .spacer{height:18px}
+  .pill{font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-weight:600;color:var(--text-2)}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(20,16,33,.45);display:none;align-items:center;justify-content:center;z-index:500;padding:20px}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:12px;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3);overflow:hidden}
+  .modal h3{padding:18px 20px;font-size:15px;border-bottom:1px solid var(--border)}
+  .modal .mbody{padding:20px}
+  .modal .mfoot{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+
+  .hide{display:none!important}
+  @media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}aside{display:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo-icon">W</div>
+    <div>
+      <div class="logo-text">CSP Compliance</div>
+      <div class="logo-sub">Fundamental Principle Violations</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="role-meta">
+      <div style="font-weight:700;color:var(--text-2)">Priya Nair</div>
+      <div id="roleHint">Reporter · Ops</div>
+    </div>
+    <div class="role-switch" id="roleSwitch">
+      <button data-role="reporter" class="active">Reporter</button>
+      <button data-role="approver">Approver</button>
+      <button data-role="both">Both</button>
+    </div>
+    <div class="avatar">PN</div>
+  </div>
+</header>
+
+<div class="shell">
+  <aside>
+    <div class="side-label">Modules</div>
+    <div class="side-item active"><span class="ic">⚖️</span> CSP Fundamental Principle Violation</div>
+    <div class="side-item disabled"><span class="ic">📦</span> Device Recovery <span class="soon">SOON</span></div>
+    <div class="side-item disabled"><span class="ic">💳</span> Partner Wallet <span class="soon">SOON</span></div>
+    <div class="spacer"></div>
+    <div class="side-label">Quick help</div>
+    <div style="padding:8px 12px;font-size:11.5px;color:var(--text-3);line-height:1.6">
+      Report confirmed violations to Product for penalty &amp; recovery.<br/><br/>
+      <b>Reporter</b> = anyone in the company.<br/>
+      <b>Approver</b> = Ops.
+    </div>
+  </aside>
+
+  <main>
+    <nav class="tabs" id="tabs">
+      <div class="tab active" data-tab="report"><span>📝</span> Report a Case</div>
+      <div class="tab" data-tab="dashboard"><span>📊</span> Dashboard</div>
+      <div class="tab" data-tab="partner"><span>🏢</span> Partner View</div>
+      <div class="tab" data-tab="approvals" data-roles="approver,both"><span>✅</span> Approvals <span class="count" id="apvCount">0</span></div>
+    </nav>
+    <div class="content" id="view"></div>
+  </main>
+</div>
+
+<!-- Reject modal -->
+<div class="modal-bg" id="rejectModal">
+  <div class="modal">
+    <h3>Reject case</h3>
+    <div class="mbody">
+      <div class="field" style="margin:0">
+        <label class="fld">Reason for rejection <span class="req">*</span></label>
+        <textarea id="rejectReason" placeholder="Explain why this case is being sent back to the reporter…"></textarea>
+        <div class="help">The reporter sees this reason and can re-submit with corrections.</div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-outline btn-sm" onclick="closeReject()">Cancel</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmReject()">Reject &amp; return</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG  — data-driven. Swap DETECTION_MATRIX with the real
+   presets when supplied. Everything else reacts automatically.
+   ============================================================ */
+
+const FP_TYPES = {
+  FP1: { code:'FP1', name:'Disintermediation',        short:'Disint.',     color:'#E8235A', badge:'b-fp1' },
+  FP2: { code:'FP2', name:'Extra Cash Collection',     short:'Extra Cash',  color:'#F59E0B', badge:'b-fp2' },
+  FP4: { code:'FP4', name:'Router / Netbox Misuse',    short:'Router Misuse',color:'#8B5CF6', badge:'b-fp4' },
+};
+
+// Proof categories. inferType() maps a filename to one of these keys.
+const PROOF_TYPES = {
+  audio:    { label:'Audio recording', icon:'🎙️', accept:'.mp3,.wav,.m4a,.aac,.ogg' },
+  image:    { label:'Image / Photo',   icon:'🖼️', accept:'.jpg,.jpeg,.png,.webp,.gif' },
+  document: { label:'Document / PDF',  icon:'📄', accept:'.pdf,.doc,.docx,.xls,.xlsx,.csv' },
+  other:    { label:'Other',           icon:'📎', accept:'*' },
+};
+
+// Re-usable conditional fields
+const F_PITCHED_PUT = { key:'pitched_put',  label:'Classification (Pitched vs Put)', type:'select', options:['Pitched','Put'], required:true };
+const F_EXTRA_AMT   = { key:'extra_amount', label:'Extra amount collected (₹)',       type:'number', required:true };
+const F_TICKET      = { key:'ticket_id',    label:'Kapture ticket ID',                 type:'text',   required:false };
+
+/* >>> PLACEHOLDER MATRIX — replace with the verified presets <<<
+   Each method: { method, validProofs:[...], requiredProofs:[...], extraFields:[...] } */
+const DETECTION_MATRIX = {
+  FP1: [
+    { method:'Outbound Calling Confirmation', validProofs:['audio'],            requiredProofs:['audio'], extraFields:[] },
+    { method:'CX Inbound Complaint',          validProofs:['audio'],            requiredProofs:['audio'], extraFields:[F_PITCHED_PUT] },
+    { method:'Field Visit / Inspection',      validProofs:['image','document'], requiredProofs:['image'], extraFields:[] },
+  ],
+  FP2: [
+    { method:'Customer Confirmation Call',    validProofs:['audio'],            requiredProofs:['audio'], extraFields:[F_EXTRA_AMT] },
+    { method:'Payment Screenshot / Receipt',  validProofs:['image','document'], requiredProofs:['image'], extraFields:[F_EXTRA_AMT] },
+    { method:'Kapture Ticket',                validProofs:['document','image'], requiredProofs:['document'], extraFields:[F_TICKET, F_EXTRA_AMT] },
+  ],
+  FP4: [
+    { method:'Field Inspection (photo)',      validProofs:['image'],            requiredProofs:['image'], extraFields:[] },
+    { method:'Network / Device Log',          validProofs:['document','image'], requiredProofs:['document'], extraFields:[] },
+    { method:'Customer Report Call',          validProofs:['audio'],            requiredProofs:['audio'], extraFields:[] },
+  ],
+};
+const IS_PLACEHOLDER_MATRIX = true; // shows a banner until real presets are wired
+
+/* ============================================================
+   MOCK DATA
+   ============================================================ */
+const today = new Date();
+function daysAgo(n){ const d=new Date(today); d.setDate(d.getDate()-n); return d; }
+function iso(d){ return d.toISOString().slice(0,10); }
+function fmtDate(d){ return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+
+// Partners that "exist in system" (lco_account_id). One is exited.
+const PARTNERS = {
+  '7000123':{ id:'7000123', name:'Ravi Cable Network',     status:'active' },
+  '7000456':{ id:'7000456', name:'Sharma Broadband',       status:'under_exit' },
+  '7000789':{ id:'7000789', name:'Star Vision Services',   status:'active' },
+  '7001011':{ id:'7001011', name:'Gupta Net Solutions',    status:'exited' },
+  '7001213':{ id:'7001213', name:'Deepak Cable & Internet',status:'active' },
+  '7001415':{ id:'7001415', name:'Bhatia Digital',         status:'under_exit' },
+};
+
+let caseSeq = 1050;
+function mkCase(o){ return Object.assign({ id:'CASE-'+(caseSeq++), comments:'', extra:{}, recovery:0 }, o); }
+
+let CASES = [
+  mkCase({ fp:'FP1', method:'Outbound Calling Confirmation', customer:'9821000011', partner:'7000123', reporter:'Priya Nair',  status:'recovery_done', reportedAt:iso(daysAgo(28)), recovery:2500, extra:{} }),
+  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000022', partner:'7000456', reporter:'Amit Verma',  status:'approved',      reportedAt:iso(daysAgo(4)),  extra:{pitched_put:'Put'} }),
+  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000033', partner:'7001011', reporter:'Priya Nair',  status:'recovery_done', reportedAt:iso(daysAgo(40)), recovery:5000, extra:{pitched_put:'Pitched'} }),
+  mkCase({ fp:'FP1', method:'Outbound Calling Confirmation', customer:'9821000044', partner:'7001213', reporter:'Sara Khan',   status:'pending',       reportedAt:iso(daysAgo(2)) }),
+  mkCase({ fp:'FP2', method:'Payment Screenshot / Receipt',  customer:'9821000055', partner:'7000123', reporter:'Amit Verma',  status:'handed',        reportedAt:iso(daysAgo(9)),  extra:{extra_amount:'800'} }),
+  mkCase({ fp:'FP2', method:'Customer Confirmation Call',    customer:'9821000066', partner:'7001415', reporter:'Sara Khan',   status:'recovery_done', reportedAt:iso(daysAgo(12)), recovery:1200, extra:{extra_amount:'1200'} }),
+  mkCase({ fp:'FP2', method:'Kapture Ticket',                customer:'9821000077', partner:'7000789', reporter:'Priya Nair',  status:'pending',       reportedAt:iso(daysAgo(1)),  extra:{ticket_id:'KAP-55821', extra_amount:'600'} }),
+  mkCase({ fp:'FP4', method:'Field Inspection (photo)',      customer:'9821000088', partner:'7000456', reporter:'Rahul Dev',   status:'approved',      reportedAt:iso(daysAgo(6)) }),
+  mkCase({ fp:'FP4', method:'Network / Device Log',          customer:'9821000099', partner:'7001011', reporter:'Rahul Dev',   status:'rejected',      reportedAt:iso(daysAgo(20)), rejectReason:'Device log did not show shared-uplink; needs re-check.' }),
+  mkCase({ fp:'FP4', method:'Customer Report Call',          customer:'9821000100', partner:'7001213', reporter:'Sara Khan',   status:'recovery_done', reportedAt:iso(daysAgo(15)), recovery:3000 }),
+];
+
+// Extra timeline events not derived from cases (comms, exit)
+const EXTRA_EVENTS = [
+  { partner:'7001011', date:iso(daysAgo(38)), type:'comms',  title:'Warning comms sent',  meta:'FP1 · Email + SMS to partner', fp:'FP1' },
+  { partner:'7001011', date:iso(daysAgo(34)), type:'recovery',title:'Recovery completed',  meta:'₹5,000 penalty recovered',     fp:'FP1' },
+  { partner:'7001011', date:iso(daysAgo(30)), type:'exit',   title:'CSP Exited',           meta:'Partner exited via 3-strike disintermediation process', fp:'FP1' },
+];
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let state = {
+  role:'reporter',
+  tab:'report',
+  reportMode:'single',
+  form:{ fp:'FP1', method:'', files:[], extra:{} },
+  dashRange:'7', dashFP:'all', customFrom:'', customTo:'',
+  partnerSel:'', bulkRows:null, rejectingId:null,
+};
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function inferType(name){
+  const ext=(name.split('.').pop()||'').toLowerCase();
+  if(['mp3','wav','m4a','aac','ogg'].includes(ext)) return 'audio';
+  if(['jpg','jpeg','png','webp','gif'].includes(ext)) return 'image';
+  if(['pdf','doc','docx','xls','xlsx','csv','txt'].includes(ext)) return 'document';
+  return 'other';
+}
+function methodCfg(fp,method){ return (DETECTION_MATRIX[fp]||[]).find(m=>m.method===method); }
+function statusBadge(s){
+  const map={pending:['b-pending','Pending approval'],approved:['b-approved','Approved'],handed:['b-handed','Handed to Product'],recovery_done:['b-recovery','Recovery done'],rejected:['b-rejected','Rejected']};
+  const [c,t]=map[s]||['pill',s]; return `<span class="badge ${c}">${t}</span>`;
+}
+function fpBadge(fp){ const f=FP_TYPES[fp]; return `<span class="badge ${f.badge}">${fp} · ${f.short}</span>`; }
+function inr(n){ return '₹'+Number(n||0).toLocaleString('en-IN'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function rangeStart(){
+  if(state.dashRange==='custom') return state.customFrom||iso(daysAgo(7));
+  return iso(daysAgo(parseInt(state.dashRange,10)));
+}
+function rangeEnd(){ return state.dashRange==='custom' ? (state.customTo||iso(today)) : iso(today); }
+function inRange(d){ const a=rangeStart(),b=rangeEnd(); return d>=a && d<=b; }
+
+/* ============================================================
+   VALIDATION ENGINE (single + bulk share this)
+   ============================================================ */
+function validateCase(c){ // c: {fp,method,customer,partner,files:[{name,type}],extra}
+  const errs=[];
+  if(!c.fp || !FP_TYPES[c.fp]) errs.push('Select a Fundamental Principle (FP1 / FP2 / FP4).');
+  const cfg = c.fp ? methodCfg(c.fp,c.method) : null;
+  if(!c.method) errs.push('Select a method of detection.');
+  else if(!cfg) errs.push(`"${c.method}" is not a valid detection method for ${c.fp}.`);
+
+  if(!/^\d{10}$/.test(String(c.customer||'').trim()))
+    errs.push('Customer ID (phone) must be exactly 10 digits.');
+
+  const pid=String(c.partner||'').trim();
+  if(!pid) errs.push('Partner ID (lco_account_id) is required.');
+  else if(!PARTNERS[pid]) errs.push(`Partner ID ${pid} not found in system.`);
+
+  if(cfg){
+    // proof type gating
+    const types=(c.files||[]).map(f=>f.type);
+    const bad=(c.files||[]).filter(f=>!cfg.validProofs.includes(f.type));
+    bad.forEach(f=>{
+      const allow=cfg.validProofs.map(t=>PROOF_TYPES[t].label).join(' / ');
+      errs.push(`Proof "${f.name}" is a ${PROOF_TYPES[f.type].label} — "${c.method}" only accepts ${allow}.`);
+    });
+    cfg.requiredProofs.forEach(rt=>{
+      if(!types.includes(rt))
+        errs.push(`${PROOF_TYPES[rt].label} proof is required for "${c.method}" — none attached.`);
+    });
+    // conditional fields
+    (cfg.extraFields||[]).forEach(f=>{
+      if(f.required && !(c.extra&&String(c.extra[f.key]||'').trim()))
+        errs.push(`"${f.label}" is required for "${c.method}".`);
+    });
+  }
+  // duplicate open-case guard
+  const dup = CASES.find(x=>x.fp===c.fp && x.partner===pid && x.customer===String(c.customer).trim() && ['pending','approved','handed'].includes(x.status));
+  if(dup) errs.push(`This partner + customer already has an open ${c.fp} case (${dup.id}).`);
+
+  return errs;
+}
+
+/* ============================================================
+   RENDER ROOT
+   ============================================================ */
+function render(){
+  // tab visibility by role
+  document.querySelectorAll('#tabs .tab').forEach(t=>{
+    const roles=t.getAttribute('data-roles');
+    t.classList.toggle('hidden', roles && !roles.split(',').includes(state.role));
+  });
+  document.getElementById('apvCount').textContent = CASES.filter(c=>c.status==='pending').length;
+  document.querySelectorAll('#tabs .tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===state.tab));
+  const v=document.getElementById('view');
+  if(state.tab==='report')    v.innerHTML=viewReport();
+  if(state.tab==='dashboard') v.innerHTML=viewDashboard();
+  if(state.tab==='partner')   v.innerHTML=viewPartner();
+  if(state.tab==='approvals') v.innerHTML=viewApprovals();
+  wireDynamic();
+}
+
+/* ---------------- REPORT ---------------- */
+function viewReport(){
+  const banner = IS_PLACEHOLDER_MATRIX ? `<div class="alert" style="background:var(--info-bg);border:1px solid #c9ddfb;color:#1d4ed8">
+     <div class="ic">ℹ️</div><div><b>Placeholder detection presets.</b> The method→proof rules below are illustrative. Send the verified presets and they swap into one config block.</div></div>`:'';
+  return `
+   <h2 class="page">Report a Case</h2>
+   <div class="page-sub">Hand a confirmed violation to Product — Customer phone, Partner <span class="mono">lco_account_id</span>, proof &amp; comments.</div>
+   ${banner}
+   <div class="seg" style="margin-bottom:18px">
+     <button onclick="setReportMode('single')" class="${state.reportMode==='single'?'active':''}">Single case</button>
+     <button onclick="setReportMode('bulk')" class="${state.reportMode==='bulk'?'active':''}">Bulk upload (CSV)</button>
+   </div>
+   ${state.reportMode==='single'?reportSingle():reportBulk()}`;
+}
+
+function reportSingle(){
+  const f=state.form;
+  const methods=DETECTION_MATRIX[f.fp]||[];
+  const cfg=methodCfg(f.fp,f.method);
+  let proofHelp='';
+  if(cfg){
+    const req=cfg.requiredProofs.map(t=>PROOF_TYPES[t].label+' (required)');
+    const opt=cfg.validProofs.filter(t=>!cfg.requiredProofs.includes(t)).map(t=>PROOF_TYPES[t].label);
+    proofHelp=`<div class="help valid-proof">✓ Valid proof: ${[...req,...opt].join(' · ')}</div>`;
+  }
+  let extraFlds='';
+  if(cfg) (cfg.extraFields||[]).forEach(x=>{
+    const val=f.extra[x.key]||'';
+    if(x.type==='select'){
+      extraFlds+=`<div class="field"><label class="fld">${x.label} ${x.required?'<span class="req">*</span>':''}</label>
+        <select onchange="setExtra('${x.key}',this.value)"><option value="">Select…</option>
+        ${x.options.map(o=>`<option ${val===o?'selected':''}>${o}</option>`).join('')}</select></div>`;
+    } else {
+      extraFlds+=`<div class="field"><label class="fld">${x.label} ${x.required?'<span class="req">*</span>':''}</label>
+        <input type="${x.type==='number'?'number':'text'}" value="${esc(val)}" oninput="setExtra('${x.key}',this.value)" placeholder="${x.type==='number'?'0':''}"></div>`;
+    }
+  });
+  const accept = cfg ? cfg.validProofs.map(t=>PROOF_TYPES[t].accept).join(',') : '*';
+  const fileChips = f.files.map((fl,i)=>{
+    const okType = !cfg || cfg.validProofs.includes(fl.type);
+    return `<span class="chip ${okType?'ok':'bad'}">${PROOF_TYPES[fl.type].icon} ${esc(fl.name)} <span class="muted">(${PROOF_TYPES[fl.type].label})</span> <span class="x" onclick="rmFile(${i})">✕</span></span>`;
+  }).join('');
+
+  return `
+  <div class="row">
+    <div class="card pad" style="flex:1;min-width:420px">
+      <div class="field">
+        <label class="fld">Fundamental Principle Violation # <span class="req">*</span></label>
+        <div class="seg fp">
+          ${Object.values(FP_TYPES).map(t=>`<button onclick="setFP('${t.code}')" class="${f.fp===t.code?'active':''}" style="${f.fp===t.code?`background:${t.color}`:''}">${t.code} · ${t.name}</button>`).join('')}
+        </div>
+      </div>
+      <div class="field">
+        <label class="fld">Method of detection <span class="req">*</span></label>
+        <select onchange="setMethod(this.value)">
+          <option value="">Select method…</option>
+          ${methods.map(m=>`<option ${f.method===m.method?'selected':''}>${m.method}</option>`).join('')}
+        </select>
+        ${proofHelp}
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label class="fld">Customer ID — Phone <span class="req">*</span></label>
+          <input type="text" id="f_customer" maxlength="10" placeholder="10-digit mobile" value="${esc(f.customer||'')}" oninput="state.form.customer=this.value">
+        </div>
+        <div class="field">
+          <label class="fld">Partner ID — <span class="mono">lco_account_id</span> <span class="req">*</span></label>
+          <input type="text" id="f_partner" placeholder="e.g. 7000123" value="${esc(f.partner||'')}" oninput="state.form.partner=this.value;hintPartner(this.value)">
+          <div class="help" id="partnerHint">Validated against the partner master.</div>
+        </div>
+      </div>
+      ${extraFlds}
+      <div class="field">
+        <label class="fld">Proof upload <span class="req">*</span></label>
+        <div class="drop" id="drop" onclick="document.getElementById('fileInput').click()">
+          <div style="font-size:22px">⬆️</div>
+          <div style="font-weight:600;color:var(--text-2)">Drop files or click to upload</div>
+          <div class="help">${cfg?'Accepted: '+cfg.validProofs.map(t=>PROOF_TYPES[t].label).join(' / '):'Select a detection method to see accepted proof types'}</div>
+        </div>
+        <input type="file" id="fileInput" multiple accept="${accept}" class="hide" onchange="addFiles(this.files)">
+        <div>${fileChips}</div>
+      </div>
+      <div class="field">
+        <label class="fld">Comments</label>
+        <textarea id="f_comments" placeholder="Context for the approver — what was confirmed, any nuance…" oninput="state.form.comments=this.value">${esc(f.comments||'')}</textarea>
+      </div>
+      <div id="formAlert"></div>
+      <button class="btn btn-primary" onclick="submitSingle()">Register case for approval →</button>
+    </div>
+    <div style="flex:0 0 260px">
+      <div class="card pad">
+        <div class="sectiontitle">How it works</div>
+        <div style="font-size:12.5px;color:var(--text-2);line-height:1.7">
+          <b>1.</b> You confirm the violation in Step 1 (calling / CX complaint).<br/>
+          <b>2.</b> Register it here with proof → <span class="badge b-pending">Pending approval</span><br/>
+          <b>3.</b> Ops <b>approves</b> → <span class="badge b-handed">Handed to Product</span><br/>
+          <b>4.</b> Product runs penalty / recovery / comms.
+        </div>
+        <div class="spacer"></div>
+        <div class="sectiontitle">Reporting contract</div>
+        <div style="font-size:12px;color:var(--text-3);line-height:1.8">
+          Customer phone · <span class="mono">lco_account_id</span> · FP# · detection method · proof · comments.
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function reportBulk(){
+  const rows=state.bulkRows;
+  let preview='';
+  if(rows){
+    const ok=rows.filter(r=>r.errors.length===0).length;
+    preview=`
+    <div class="spacer"></div>
+    <div class="toolbar">
+      <span class="badge b-recovery">${ok} valid</span>
+      <span class="badge b-rejected">${rows.length-ok} with errors</span>
+      <span class="muted">of ${rows.length} rows</span>
+      <button class="btn btn-primary btn-sm" style="margin-left:auto" onclick="submitBulk()" ${ok?'':'disabled'}>Submit ${ok} valid case${ok===1?'':'s'} →</button>
+    </div>
+    <div class="card" style="overflow:auto">
+      <table>
+        <thead><tr><th>#</th><th>Status</th><th>FP</th><th>Customer</th><th>Partner</th><th>Method</th><th>Proof</th><th>Issue</th></tr></thead>
+        <tbody>
+        ${rows.map((r,i)=>`<tr>
+          <td class="num">${i+1}</td>
+          <td>${r.errors.length?'<span class="badge b-rejected">✕ Error</span>':'<span class="badge b-recovery">✓ Valid</span>'}</td>
+          <td>${r.c.fp?fpBadge(r.c.fp):'<span class="muted">—</span>'}</td>
+          <td class="mono">${esc(r.c.customer||'—')}</td>
+          <td class="mono">${esc(r.c.partner||'—')}</td>
+          <td style="font-size:12px">${esc(r.c.method||'—')}</td>
+          <td>${(r.c.files||[]).map(f=>PROOF_TYPES[f.type].icon).join(' ')||'<span class="muted">none</span>'}</td>
+          <td style="font-size:11.5px;color:var(--danger)">${r.errors.map(esc).join('<br/>')||'<span class="muted">—</span>'}</td>
+        </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }
+  return `
+  <div class="card pad">
+    <div class="sectiontitle">Bulk upload — CSV</div>
+    <p style="font-size:13px;color:var(--text-2);margin-bottom:14px">Upload many confirmed cases at once. Each row is validated with the same rules as single reporting; only valid rows are submitted.</p>
+    <div class="toolbar">
+      <span class="fld" style="margin:0">Sample template:</span>
+      <button class="btn btn-outline btn-sm" onclick="downloadSample('FP1')">⬇ FP1 sample</button>
+      <button class="btn btn-outline btn-sm" onclick="downloadSample('FP2')">⬇ FP2 sample</button>
+      <button class="btn btn-outline btn-sm" onclick="downloadSample('FP4')">⬇ FP4 sample</button>
+    </div>
+    <div class="drop" id="dropCsv" onclick="document.getElementById('csvInput').click()">
+      <div style="font-size:22px">📄</div>
+      <div style="font-weight:600;color:var(--text-2)">Drop CSV or click to upload</div>
+      <div class="help">Columns: fp, customer_phone, partner_lco_account_id, method, proof_filename, comments, [extra fields]</div>
+    </div>
+    <input type="file" id="csvInput" accept=".csv" class="hide" onchange="loadCsv(this.files[0])">
+    <div class="field" style="margin-top:14px;max-width:520px">
+      <label class="fld">Batch comment (optional — applied to all rows)</label>
+      <input type="text" id="batchComment" placeholder="e.g. May calling drive — confirmed disintermediation batch">
+    </div>
+    ${preview}
+  </div>`;
+}
+
+/* ---------------- DASHBOARD ---------------- */
+function dashCases(){
+  return CASES.filter(c=>inRange(c.reportedAt) && (state.dashFP==='all'||c.fp===state.dashFP));
+}
+function viewDashboard(){
+  const cs=dashCases();
+  const partners=new Set(cs.map(c=>c.partner));
+  const recovered=cs.filter(c=>c.status==='recovery_done');
+  const recAmt=recovered.reduce((s,c)=>s+(c.recovery||0),0);
+  const exited=new Set(cs.filter(c=>PARTNERS[c.partner]&&PARTNERS[c.partner].status==='exited').map(c=>c.partner));
+
+  const byFP=['FP1','FP2','FP4'].map(fp=>{
+    const f=cs.filter(c=>c.fp===fp);
+    return { fp,
+      cases:f.length,
+      partners:new Set(f.map(c=>c.partner)).size,
+      rec:f.filter(c=>c.status==='recovery_done').reduce((s,c)=>s+(c.recovery||0),0),
+      recN:f.filter(c=>c.status==='recovery_done').length,
+      pending:f.filter(c=>c.status==='pending').length,
+      approved:f.filter(c=>['approved','handed'].includes(c.status)).length,
+      rejected:f.filter(c=>c.status==='rejected').length };
+  });
+  const cnt=s=>cs.filter(c=>c.status===s).length;
+  const funnel=[
+    ['Reported',cs.length,'#64748B'],
+    ['Approved',cs.filter(c=>['approved','handed','recovery_done'].includes(c.status)).length,'#3B82F6'],
+    ['Handed to Product',cs.filter(c=>['handed','recovery_done'].includes(c.status)).length,'#8B5CF6'],
+    ['Recovery done',recovered.length,'#10B981'],
+  ];
+
+  return `
+   <h2 class="page">Dashboard</h2>
+   <div class="page-sub">Cases, partners and recovery across the reporting → handoff pipeline.</div>
+   <div class="toolbar">
+     <div class="seg">
+       ${[['7','Last 7 days'],['14','Last 14 days'],['30','Last month'],['custom','Custom']].map(([v,l])=>`<button onclick="setRange('${v}')" class="${state.dashRange===v?'active':''}">${l}</button>`).join('')}
+     </div>
+     ${state.dashRange==='custom'?`<input type="date" style="width:auto" value="${state.customFrom||iso(daysAgo(7))}" onchange="state.customFrom=this.value;render()"> <span class="muted">to</span> <input type="date" style="width:auto" value="${state.customTo||iso(today)}" onchange="state.customTo=this.value;render()">`:''}
+     <div class="seg fp" style="margin-left:auto">
+       <button onclick="setDashFP('all')" class="${state.dashFP==='all'?'active':''}" style="${state.dashFP==='all'?'background:#1A1A1A':''}">All</button>
+       ${Object.values(FP_TYPES).map(t=>`<button onclick="setDashFP('${t.code}')" class="${state.dashFP===t.code?'active':''}" style="${state.dashFP===t.code?`background:${t.color}`:''}">${t.code}</button>`).join('')}
+     </div>
+   </div>
+
+   <div class="kpis">
+     <div class="kpi"><div class="lbl">Cases reported</div><div class="val accent">${cs.length}</div><div class="sub">${cnt('pending')} pending · ${cnt('rejected')} rejected</div></div>
+     <div class="kpi"><div class="lbl">Partners involved</div><div class="val">${partners.size}</div><div class="sub">distinct lco_account_ids</div></div>
+     <div class="kpi"><div class="lbl">Recovery done</div><div class="val" style="color:var(--success)">${inr(recAmt)}</div><div class="sub">${recovered.length} case${recovered.length===1?'':'s'} recovered</div></div>
+     <div class="kpi"><div class="lbl">Partners exited</div><div class="val" style="color:var(--danger)">${exited.size}</div><div class="sub">via this process</div></div>
+   </div>
+
+   <div class="card pad" style="margin-bottom:18px">
+     <div class="sectiontitle">Pipeline funnel</div>
+     <div class="funnel">
+       ${funnel.map((f,i)=>`<div class="fstep"><div class="fv" style="color:${f[2]}">${f[1]}</div><div class="fl">${f[0]}</div>${i<funnel.length-1?'<div class="arr">→</div>':''}</div>`).join('')}
+     </div>
+   </div>
+
+   <div class="card">
+     <div class="pad" style="padding-bottom:0"><div class="sectiontitle">By Fundamental Principle</div></div>
+     <table>
+       <thead><tr><th>Principle</th><th>Cases</th><th>Partners</th><th>Pending</th><th>Approved</th><th>Rejected</th><th>Recovery done</th><th>Recovered ₹</th></tr></thead>
+       <tbody>
+       ${byFP.map(r=>`<tr>
+         <td>${fpBadge(r.fp)} <span class="muted" style="font-size:12px">${FP_TYPES[r.fp].name}</span></td>
+         <td class="num">${r.cases}</td><td class="num">${r.partners}</td>
+         <td class="num">${r.pending}</td><td class="num">${r.approved}</td><td class="num">${r.rejected}</td>
+         <td class="num">${r.recN}</td><td class="num">${inr(r.rec)}</td>
+       </tr>`).join('')}
+       <tr style="font-weight:700;background:#fcfcfd">
+         <td>Total</td><td class="num">${cs.length}</td><td class="num">${partners.size}</td>
+         <td class="num">${cnt('pending')}</td><td class="num">${cs.filter(c=>['approved','handed'].includes(c.status)).length}</td>
+         <td class="num">${cnt('rejected')}</td><td class="num">${recovered.length}</td><td class="num">${inr(recAmt)}</td>
+       </tr>
+       </tbody>
+     </table>
+   </div>`;
+}
+
+/* ---------------- PARTNER VIEW ---------------- */
+function viewPartner(){
+  const opts=Object.values(PARTNERS);
+  const sel=state.partnerSel;
+  let body='';
+  if(!sel){
+    body=`<div class="card pad" style="text-align:center;color:var(--text-3);padding:48px">
+      <div style="font-size:30px">🏢</div><div style="margin-top:8px">Search and select a partner to see their violation history &amp; timeline.</div></div>`;
+  } else {
+    const p=PARTNERS[sel];
+    const cs=CASES.filter(c=>c.partner===sel);
+    const recAmt=cs.filter(c=>c.status==='recovery_done').reduce((s,c)=>s+(c.recovery||0),0);
+    const stBadge={active:['b-active','Active'],under_exit:['b-exit','Under exit'],exited:['b-exited','Exited']}[p.status];
+    const perFP=['FP1','FP2','FP4'].map(fp=>{
+      const f=cs.filter(c=>c.fp===fp);
+      return {fp,n:f.length,rec:f.filter(c=>c.status==='recovery_done').reduce((s,c)=>s+(c.recovery||0),0)};
+    });
+    // timeline = case events + extra events, sorted desc
+    let ev=[];
+    cs.forEach(c=>{
+      ev.push({date:c.reportedAt,type:'reported',title:'Case reported',meta:`${c.method} · Customer ${c.customer} · by ${c.reporter}`,fp:c.fp,id:c.id});
+      if(['approved','handed','recovery_done'].includes(c.status)) ev.push({date:c.reportedAt,type:'approved',title:'Approved by Ops',meta:`${c.id} approved · handed to Product`,fp:c.fp});
+      if(c.status==='recovery_done') ev.push({date:c.reportedAt,type:'recovery',title:'Recovery done',meta:`${inr(c.recovery)} recovered · ${c.id}`,fp:c.fp});
+      if(c.status==='rejected') ev.push({date:c.reportedAt,type:'rejected',title:'Rejected',meta:c.rejectReason||'Returned to reporter',fp:c.fp});
+    });
+    EXTRA_EVENTS.filter(e=>e.partner===sel).forEach(e=>ev.push(e));
+    ev.sort((a,b)=>b.date<a.date?-1:b.date>a.date?1:0);
+
+    body=`
+    <div class="card pad" style="margin-bottom:18px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:17px;font-weight:700">${esc(p.name)}</div>
+          <div class="muted mono" style="margin-top:3px">lco_account_id · ${p.id}</div>
+        </div>
+        <span class="badge ${stBadge[0]}" style="font-size:12px">${p.status==='exited'?'⛔ ':''}${stBadge[1]}</span>
+      </div>
+      <div class="kpis" style="margin-top:16px;margin-bottom:0">
+        <div class="kpi"><div class="lbl">Total cases</div><div class="val">${cs.length}</div></div>
+        <div class="kpi"><div class="lbl">Recovered</div><div class="val" style="color:var(--success)">${inr(recAmt)}</div></div>
+        <div class="kpi"><div class="lbl">Open cases</div><div class="val">${cs.filter(c=>['pending','approved','handed'].includes(c.status)).length}</div></div>
+        <div class="kpi"><div class="lbl">Rejected</div><div class="val">${cs.filter(c=>c.status==='rejected').length}</div></div>
+      </div>
+    </div>
+
+    <div class="row" style="margin-bottom:18px">
+      ${perFP.map(r=>`<div class="card pad" style="flex:1;min-width:180px">
+        <div>${fpBadge(r.fp)}</div>
+        <div style="font-size:24px;font-weight:800;margin-top:10px">${r.n} <span style="font-size:13px;font-weight:600;color:var(--text-3)">case${r.n===1?'':'s'}</span></div>
+        <div class="muted" style="font-size:12.5px;margin-top:2px">Recovered ${inr(r.rec)}</div>
+      </div>`).join('')}
+    </div>
+
+    <div class="card pad">
+      <div class="sectiontitle">Case timeline</div>
+      <div class="tl">
+        ${ev.map(e=>{
+          if(e.type==='exit') return `<div class="tl-item exitcard"><div class="tl-dot exit"></div>
+             <div class="tl-date">${fmtDate(e.date)}</div>
+             <div class="tl-title" style="color:#b45309">⛔ ${esc(e.title)}</div>
+             <div class="tl-meta">${esc(e.meta)}</div></div>`;
+          return `<div class="tl-item"><div class="tl-dot ${e.type}"></div>
+             <div class="tl-date">${fmtDate(e.date)} ${e.fp?'· '+fpBadge(e.fp):''}</div>
+             <div class="tl-title">${esc(e.title)}</div>
+             <div class="tl-meta">${esc(e.meta)}</div></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }
+  return `
+   <h2 class="page">Partner View</h2>
+   <div class="page-sub">Filter by partner — violations by principle, recovery, and full timeline including exits.</div>
+   <div class="toolbar">
+     <select style="max-width:360px" onchange="state.partnerSel=this.value;render()">
+       <option value="">Select a partner (lco_account_id)…</option>
+       ${opts.map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${p.id} · ${esc(p.name)}${p.status==='exited'?' (Exited)':''}</option>`).join('')}
+     </select>
+   </div>
+   ${body}`;
+}
+
+/* ---------------- APPROVALS ---------------- */
+function viewApprovals(){
+  const pend=CASES.filter(c=>c.status==='pending').sort((a,b)=>a.reportedAt<b.reportedAt?1:-1);
+  const recent=CASES.filter(c=>c.status!=='pending').sort((a,b)=>a.reportedAt<b.reportedAt?1:-1).slice(0,8);
+  const canAct = state.role==='approver'||state.role==='both';
+  return `
+   <h2 class="page">Approvals <span class="muted" style="font-size:14px">(${pend.length} pending)</span></h2>
+   <div class="page-sub">Ops reviews confirmed cases. Approve → handed to Product. Reject → returned to reporter with a reason.</div>
+   ${!canAct?`<div class="alert" style="background:var(--warning-bg);border:1px solid #f3d9a8;color:#b45309"><div class="ic">🔒</div><div>You are in <b>Reporter</b> view — approval actions are disabled. Switch role to <b>Approver</b> or <b>Both</b>.</div></div>`:''}
+   ${pend.length===0?`<div class="card pad" style="text-align:center;color:var(--text-3);padding:40px">🎉 No cases pending approval.</div>`:`
+   <div class="card" style="overflow:auto;margin-bottom:22px">
+     <table>
+       <thead><tr><th>Case</th><th>FP</th><th>Detection</th><th>Customer</th><th>Partner</th><th>Proof</th><th>Reporter</th><th>Reported</th><th>Comment</th><th></th></tr></thead>
+       <tbody>
+       ${pend.map(c=>`<tr>
+         <td class="mono">${c.id}</td>
+         <td>${fpBadge(c.fp)}</td>
+         <td style="font-size:12px">${esc(c.method)}${c.extra&&c.extra.pitched_put?`<br/><span class="pill">${c.extra.pitched_put}</span>`:''}${c.extra&&c.extra.extra_amount?`<br/><span class="pill">${inr(c.extra.extra_amount)}</span>`:''}</td>
+         <td class="mono">${c.customer}</td>
+         <td class="mono">${c.partner}<br/><span class="muted" style="font-size:11px">${esc((PARTNERS[c.partner]||{}).name||'')}</span></td>
+         <td><a class="link" onclick="alert('Proof preview (wireframe) — '+'${c.id}')">▶ view</a></td>
+         <td style="font-size:12px">${esc(c.reporter)}</td>
+         <td style="font-size:12px">${fmtDate(c.reportedAt)}</td>
+         <td style="font-size:11.5px;max-width:160px;color:var(--text-2)">${esc(c.comments||'—')}</td>
+         <td style="white-space:nowrap">
+           <button class="btn btn-success btn-sm" ${canAct?'':'disabled'} onclick="approve('${c.id}')">Approve</button>
+           <button class="btn btn-danger btn-sm" ${canAct?'':'disabled'} onclick="openReject('${c.id}')">Reject</button>
+         </td>
+       </tr>`).join('')}
+       </tbody>
+     </table>
+   </div>`}
+   <div class="card">
+     <div class="pad" style="padding-bottom:0"><div class="sectiontitle">Recently actioned</div></div>
+     <table>
+       <thead><tr><th>Case</th><th>FP</th><th>Partner</th><th>Status</th><th>Reporter</th><th>Note</th></tr></thead>
+       <tbody>
+       ${recent.map(c=>`<tr>
+         <td class="mono">${c.id}</td><td>${fpBadge(c.fp)}</td>
+         <td class="mono">${c.partner}</td><td>${statusBadge(c.status)}</td>
+         <td style="font-size:12px">${esc(c.reporter)}</td>
+         <td style="font-size:11.5px;color:var(--text-2)">${esc(c.rejectReason||(c.status==='recovery_done'?inr(c.recovery)+' recovered':'—'))}</td>
+       </tr>`).join('')}
+       </tbody>
+     </table>
+   </div>`;
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+function setRole(r){
+  state.role=r;
+  document.querySelectorAll('#roleSwitch button').forEach(b=>b.classList.toggle('active',b.dataset.role===r));
+  document.getElementById('roleHint').textContent = r==='reporter'?'Reporter · Ops':r==='approver'?'Approver · Ops':'Reporter + Approver';
+  // if on a hidden tab, bounce to dashboard
+  if(state.tab==='approvals' && r==='reporter') state.tab='report';
+  if(state.tab==='report' && r==='approver') state.tab='approvals';
+  render();
+}
+function setTab(t){ state.tab=t; render(); }
+function setReportMode(m){ state.reportMode=m; render(); }
+function setFP(fp){ state.form.fp=fp; state.form.method=''; state.form.extra={}; state.form.files=[]; render(); }
+function setMethod(m){ state.form.method=m; state.form.extra={}; state.form.files=[]; render(); }
+function setExtra(k,v){ state.form.extra[k]=v; }
+function setRange(r){ state.dashRange=r; render(); }
+function setDashFP(fp){ state.dashFP=fp; render(); }
+function rmFile(i){ state.form.files.splice(i,1); render(); }
+function addFiles(list){
+  [...list].forEach(f=>state.form.files.push({name:f.name,type:inferType(f.name)}));
+  render();
+}
+function hintPartner(v){
+  const el=document.getElementById('partnerHint'); if(!el) return;
+  v=v.trim();
+  if(!v){ el.textContent='Validated against the partner master.'; el.style.color=''; return; }
+  if(PARTNERS[v]){ el.textContent='✓ '+PARTNERS[v].name+' ('+({active:'Active',under_exit:'Under exit',exited:'Exited'}[PARTNERS[v].status])+')'; el.style.color='var(--success)'; }
+  else { el.textContent='✕ Not found in system'; el.style.color='var(--danger)'; }
+}
+function setExtraFromForm(){}
+
+function submitSingle(){
+  const f=state.form;
+  const c={ fp:f.fp, method:f.method, customer:(f.customer||'').trim(), partner:(f.partner||'').trim(), files:f.files, extra:f.extra };
+  const errs=validateCase(c);
+  const box=document.getElementById('formAlert');
+  if(errs.length){
+    box.innerHTML=`<div class="alert alert-err"><div class="ic">⚠️</div><div><b>Cannot register — ${errs.length} issue${errs.length>1?'s':''}:</b><ul>${errs.map(e=>`<li>${esc(e)}</li>`).join('')}</ul></div></div>`;
+    box.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  const nc=mkCase({ fp:c.fp, method:c.method, customer:c.customer, partner:c.partner, reporter:'Priya Nair', status:'pending', reportedAt:iso(today), comments:f.comments||'', extra:Object.assign({},f.extra) });
+  CASES.unshift(nc);
+  state.form={ fp:'FP1', method:'', files:[], extra:{}, customer:'', partner:'', comments:'' };
+  render();
+  document.getElementById('view').insertAdjacentHTML('afterbegin',
+    `<div class="alert alert-ok"><div class="ic">✅</div><div><b>${nc.id} registered.</b> Sent to Ops for approval — visible in the Approvals queue and Dashboard.</div></div>`);
+}
+
+/* ----- bulk ----- */
+function downloadSample(fp){
+  const cfg=DETECTION_MATRIX[fp][0];
+  const extraCols=[...new Set(DETECTION_MATRIX[fp].flatMap(m=>(m.extraFields||[]).map(x=>x.key)))];
+  const headers=['fp','customer_phone','partner_lco_account_id','method','proof_filename','comments',...extraCols];
+  const sample1=[fp,'9876500011','7000123',cfg.method,'rec_9876500011.'+(PROOF_TYPES[cfg.requiredProofs[0]].accept.split(',')[0].replace('.','')||'mp3'),'Confirmed on call',...extraCols.map(k=>k==='pitched_put'?'Put':k==='extra_amount'?'500':k==='ticket_id'?'KAP-0001':'')];
+  const csv=[headers.join(','),sample1.join(',')].join('\n');
+  const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=`csp_violation_sample_${fp}.csv`; a.click();
+}
+function parseCsv(text){
+  const lines=text.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+  if(!lines.length) return [];
+  const split=l=>{ const out=[];let cur='',q=false;for(const ch of l){ if(ch==='"'){q=!q;} else if(ch===','&&!q){out.push(cur);cur='';} else cur+=ch;} out.push(cur); return out.map(s=>s.trim());};
+  const head=split(lines[0]);
+  return lines.slice(1).map(l=>{ const v=split(l); const o={}; head.forEach((h,i)=>o[h]=v[i]||''); return o; });
+}
+function loadCsv(file){
+  if(!file) return;
+  const rd=new FileReader();
+  rd.onload=e=>{
+    const rows=parseCsv(e.target.result).map(o=>{
+      const fp=(o.fp||'').toUpperCase().trim();
+      const proofName=(o.proof_filename||'').trim();
+      const extra={};
+      Object.keys(o).forEach(k=>{ if(!['fp','customer_phone','partner_lco_account_id','method','proof_filename','comments'].includes(k) && o[k]) extra[k]=o[k]; });
+      const c={ fp, customer:(o.customer_phone||'').trim(), partner:(o.partner_lco_account_id||'').trim(), method:(o.method||'').trim(),
+                files:proofName?[{name:proofName,type:inferType(proofName)}]:[], extra, comments:(o.comments||'').trim() };
+      return { c, errors:validateCase(c) };
+    });
+    state.bulkRows=rows; render();
+  };
+  rd.readAsText(file);
+}
+function submitBulk(){
+  const batch=(document.getElementById('batchComment')||{}).value||'';
+  const ok=state.bulkRows.filter(r=>r.errors.length===0);
+  ok.forEach(r=>CASES.unshift(mkCase({ fp:r.c.fp, method:r.c.method, customer:r.c.customer, partner:r.c.partner, reporter:'Priya Nair', status:'pending', reportedAt:iso(today), comments:r.c.comments||batch, extra:Object.assign({},r.c.extra) })));
+  const n=ok.length;
+  state.bulkRows=null; render();
+  document.getElementById('view').insertAdjacentHTML('afterbegin',
+    `<div class="alert alert-ok"><div class="ic">✅</div><div><b>${n} case${n===1?'':'s'} registered</b> and sent to Ops for approval.</div></div>`);
+}
+
+/* ----- approvals ----- */
+function approve(id){ const c=CASES.find(x=>x.id===id); if(c){ c.status='handed'; } render(); }
+function openReject(id){ state.rejectingId=id; document.getElementById('rejectReason').value=''; document.getElementById('rejectModal').classList.add('show'); }
+function closeReject(){ document.getElementById('rejectModal').classList.remove('show'); state.rejectingId=null; }
+function confirmReject(){
+  const r=document.getElementById('rejectReason').value.trim();
+  if(!r){ document.getElementById('rejectReason').style.borderColor='var(--danger)'; return; }
+  const c=CASES.find(x=>x.id===state.rejectingId); if(c){ c.status='rejected'; c.rejectReason=r; }
+  closeReject(); render();
+}
+
+/* drag-drop wiring (re-bound after each render) */
+function wireDynamic(){
+  const drop=document.getElementById('drop');
+  if(drop){
+    ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('drag');}));
+    ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('drag');}));
+    drop.addEventListener('drop',e=>addFiles(e.dataTransfer.files));
+  }
+  const dc=document.getElementById('dropCsv');
+  if(dc){
+    ['dragover','dragenter'].forEach(ev=>dc.addEventListener(ev,e=>{e.preventDefault();dc.classList.add('drag');}));
+    ['dragleave','drop'].forEach(ev=>dc.addEventListener(ev,e=>{e.preventDefault();dc.classList.remove('drag');}));
+    dc.addEventListener('drop',e=>{e.preventDefault();loadCsv(e.dataTransfer.files[0]);});
+  }
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+document.getElementById('roleSwitch').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) setRole(b.dataset.role); });
+document.getElementById('tabs').addEventListener('click',e=>{ const t=e.target.closest('.tab'); if(t&&!t.classList.contains('hidden')) setTab(t.dataset.tab); });
+render();
+</script>
+</body>
+</html>
