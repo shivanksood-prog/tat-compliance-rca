@@ -159,6 +159,13 @@
   .muted{color:var(--text-3)}
   .link{color:var(--info);font-weight:600;cursor:pointer;text-decoration:none}
   .link:hover{text-decoration:underline}
+  .clk{cursor:pointer;color:var(--pink);text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+  .clk:hover{color:var(--pink-dark)}
+  td.clknum{cursor:pointer}
+  td.clknum:hover{background:var(--pink-light)}
+  .kpi.clkcard{cursor:pointer;transition:.14s}
+  .kpi.clkcard:hover{border-color:var(--pink);box-shadow:0 2px 10px rgba(232,35,90,.12)}
+  .modal.wide{max-width:580px}
   .sectiontitle{font-size:14px;font-weight:700;margin:0 0 12px;display:flex;align-items:center;gap:8px}
   .spacer{height:18px}
   .pill{font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-weight:600;color:var(--text-2)}
@@ -226,6 +233,11 @@
   </main>
 </div>
 
+<!-- Drill-down modal -->
+<div class="modal-bg" id="drillModal" onclick="if(event.target===this)closeDrill()">
+  <div class="modal wide"></div>
+</div>
+
 <!-- Reject modal -->
 <div class="modal-bg" id="rejectModal">
   <div class="modal">
@@ -256,6 +268,14 @@ const FP_TYPES = {
   FP4: { code:'FP4', name:'Router / Netbox Misuse',    short:'Router Misuse',color:'#8B5CF6', badge:'b-fp4' },
 };
 
+// Per-FP identity & required core fields.
+//  customer = customer phone required · device = device id required (FP4, no phone) · amount always captured.
+const FP_FIELDS = {
+  FP1: { customer:true,  device:false, amount:true },
+  FP2: { customer:true,  device:false, amount:true },
+  FP4: { customer:false, device:true,  amount:true },
+};
+
 // Proof categories. inferType() maps a filename to one of these keys.
 const PROOF_TYPES = {
   audio:    { label:'Audio recording', icon:'🎙️', accept:'.mp3,.wav,.m4a,.aac,.ogg' },
@@ -264,9 +284,8 @@ const PROOF_TYPES = {
   other:    { label:'Other',           icon:'📎', accept:'*' },
 };
 
-// Re-usable conditional fields
+// Re-usable conditional (method-specific) fields. Amount is now a core field, not here.
 const F_PITCHED_PUT = { key:'pitched_put',  label:'Classification (Pitched vs Put)', type:'select', options:['Pitched','Put'], required:true };
-const F_EXTRA_AMT   = { key:'extra_amount', label:'Extra amount collected (₹)',       type:'number', required:true };
 const F_TICKET      = { key:'ticket_id',    label:'Kapture ticket ID',                 type:'text',   required:false };
 
 /* >>> PLACEHOLDER MATRIX — replace with the verified presets <<<
@@ -278,9 +297,9 @@ const DETECTION_MATRIX = {
     { method:'Field Visit / Inspection',      validProofs:['image','document'], requiredProofs:['image'], extraFields:[] },
   ],
   FP2: [
-    { method:'Customer Confirmation Call',    validProofs:['audio'],            requiredProofs:['audio'], extraFields:[F_EXTRA_AMT] },
-    { method:'Payment Screenshot / Receipt',  validProofs:['image','document'], requiredProofs:['image'], extraFields:[F_EXTRA_AMT] },
-    { method:'Kapture Ticket',                validProofs:['document','image'], requiredProofs:['document'], extraFields:[F_TICKET, F_EXTRA_AMT] },
+    { method:'Customer Confirmation Call',    validProofs:['audio'],            requiredProofs:['audio'], extraFields:[] },
+    { method:'Payment Screenshot / Receipt',  validProofs:['image','document'], requiredProofs:['image'], extraFields:[] },
+    { method:'Kapture Ticket',                validProofs:['document','image'], requiredProofs:['document'], extraFields:[F_TICKET] },
   ],
   FP4: [
     { method:'Field Inspection (photo)',      validProofs:['image'],            requiredProofs:['image'], extraFields:[] },
@@ -312,16 +331,16 @@ let caseSeq = 1050;
 function mkCase(o){ return Object.assign({ id:'CASE-'+(caseSeq++), comments:'', extra:{}, recovery:0 }, o); }
 
 let CASES = [
-  mkCase({ fp:'FP1', method:'Outbound Calling Confirmation', customer:'9821000011', partner:'7000123', reporter:'Priya Nair',  status:'recovery_done', reportedAt:iso(daysAgo(28)), recovery:2500, extra:{} }),
-  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000022', partner:'7000456', reporter:'Amit Verma',  status:'approved',      reportedAt:iso(daysAgo(4)),  extra:{pitched_put:'Put'} }),
-  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000033', partner:'7001011', reporter:'Priya Nair',  status:'recovery_done', reportedAt:iso(daysAgo(40)), recovery:5000, extra:{pitched_put:'Pitched'} }),
-  mkCase({ fp:'FP1', method:'Outbound Calling Confirmation', customer:'9821000044', partner:'7001213', reporter:'Sara Khan',   status:'pending',       reportedAt:iso(daysAgo(2)) }),
-  mkCase({ fp:'FP2', method:'Payment Screenshot / Receipt',  customer:'9821000055', partner:'7000123', reporter:'Amit Verma',  status:'handed',        reportedAt:iso(daysAgo(9)),  extra:{extra_amount:'800'} }),
-  mkCase({ fp:'FP2', method:'Customer Confirmation Call',    customer:'9821000066', partner:'7001415', reporter:'Sara Khan',   status:'recovery_done', reportedAt:iso(daysAgo(12)), recovery:1200, extra:{extra_amount:'1200'} }),
-  mkCase({ fp:'FP2', method:'Kapture Ticket',                customer:'9821000077', partner:'7000789', reporter:'Priya Nair',  status:'pending',       reportedAt:iso(daysAgo(1)),  extra:{ticket_id:'KAP-55821', extra_amount:'600'} }),
-  mkCase({ fp:'FP4', method:'Field Inspection (photo)',      customer:'9821000088', partner:'7000456', reporter:'Rahul Dev',   status:'approved',      reportedAt:iso(daysAgo(6)) }),
-  mkCase({ fp:'FP4', method:'Network / Device Log',          customer:'9821000099', partner:'7001011', reporter:'Rahul Dev',   status:'rejected',      reportedAt:iso(daysAgo(20)), rejectReason:'Device log did not show shared-uplink; needs re-check.' }),
-  mkCase({ fp:'FP4', method:'Customer Report Call',          customer:'9821000100', partner:'7001213', reporter:'Sara Khan',   status:'recovery_done', reportedAt:iso(daysAgo(15)), recovery:3000 }),
+  mkCase({ fp:'FP1', method:'Outbound Calling Confirmation', customer:'9821000011', partner:'7000123', reporter:'Priya Nair',  status:'recovery_done', reportedAt:iso(daysAgo(28)), amount:2500, recovery:2500, extra:{} }),
+  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000022', partner:'7000456', reporter:'Amit Verma',  status:'approved',      reportedAt:iso(daysAgo(4)),  amount:3000, extra:{pitched_put:'Put'} }),
+  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000033', partner:'7001011', reporter:'Priya Nair',  status:'recovery_done', reportedAt:iso(daysAgo(40)), amount:5000, recovery:5000, extra:{pitched_put:'Pitched'} }),
+  mkCase({ fp:'FP1', method:'Outbound Calling Confirmation', customer:'9821000044', partner:'7001213', reporter:'Sara Khan',   status:'pending',       reportedAt:iso(daysAgo(2)),  amount:2500 }),
+  mkCase({ fp:'FP2', method:'Payment Screenshot / Receipt',  customer:'9821000055', partner:'7000123', reporter:'Amit Verma',  status:'handed',        reportedAt:iso(daysAgo(9)),  amount:800 }),
+  mkCase({ fp:'FP2', method:'Customer Confirmation Call',    customer:'9821000066', partner:'7001415', reporter:'Sara Khan',   status:'recovery_done', reportedAt:iso(daysAgo(12)), amount:1200, recovery:1200 }),
+  mkCase({ fp:'FP2', method:'Kapture Ticket',                customer:'9821000077', partner:'7000789', reporter:'Priya Nair',  status:'pending',       reportedAt:iso(daysAgo(1)),  amount:600, extra:{ticket_id:'KAP-55821'} }),
+  mkCase({ fp:'FP4', method:'Field Inspection (photo)',      device:'RTR-AA12-8890', partner:'7000456', reporter:'Rahul Dev',   status:'approved',      reportedAt:iso(daysAgo(6)),  amount:1500 }),
+  mkCase({ fp:'FP4', method:'Network / Device Log',          device:'RTR-BB34-1102', partner:'7001011', reporter:'Rahul Dev',   status:'rejected',      reportedAt:iso(daysAgo(20)), amount:0, rejectReason:'Device log did not show shared-uplink; needs re-check.' }),
+  mkCase({ fp:'FP4', method:'Customer Report Call',          device:'RTR-CC56-7741', partner:'7001213', reporter:'Sara Khan',   status:'recovery_done', reportedAt:iso(daysAgo(15)), amount:3000, recovery:3000 }),
 ];
 
 // Extra timeline events not derived from cases (comms, exit)
@@ -338,9 +357,9 @@ let state = {
   role:'reporter',
   tab:'report',
   reportMode:'single',
-  form:{ fp:'FP1', method:'', files:[], extra:{} },
+  form:{ fp:'FP1', method:'', files:[], extra:{}, customer:'', device:'', partner:'', amount:'', comments:'' },
   dashRange:'7', dashFP:'all', customFrom:'', customTo:'',
-  partnerSel:'', bulkRows:null, rejectingId:null,
+  partnerSel:'', bulkRaw:null, bulkFiles:[], rejectingId:null,
 };
 
 /* ============================================================
@@ -372,15 +391,26 @@ function inRange(d){ const a=rangeStart(),b=rangeEnd(); return d>=a && d<=b; }
 /* ============================================================
    VALIDATION ENGINE (single + bulk share this)
    ============================================================ */
-function validateCase(c){ // c: {fp,method,customer,partner,files:[{name,type}],extra}
+function validateCase(c){ // c: {fp,method,customer,device,partner,amount,files:[{name,type}],extra}
   const errs=[];
   if(!c.fp || !FP_TYPES[c.fp]) errs.push('Select a Fundamental Principle (FP1 / FP2 / FP4).');
   const cfg = c.fp ? methodCfg(c.fp,c.method) : null;
+  const ff  = FP_FIELDS[c.fp] || {customer:true,device:false,amount:true};
   if(!c.method) errs.push('Select a method of detection.');
   else if(!cfg) errs.push(`"${c.method}" is not a valid detection method for ${c.fp}.`);
 
-  if(!/^\d{10}$/.test(String(c.customer||'').trim()))
+  // identity field — phone (FP1/FP2) or device id (FP4)
+  if(ff.customer && !/^\d{10}$/.test(String(c.customer||'').trim()))
     errs.push('Customer ID (phone) must be exactly 10 digits.');
+  if(ff.device && !String(c.device||'').trim())
+    errs.push('Device ID is required for FP4 (Router / Netbox Misuse).');
+
+  // amount
+  if(ff.amount){
+    const amt=String(c.amount==null?'':c.amount).trim();
+    if(amt==='') errs.push('Amount (₹) is required.');
+    else if(isNaN(Number(amt)) || Number(amt)<0) errs.push('Amount (₹) must be a non-negative number.');
+  }
 
   const pid=String(c.partner||'').trim();
   if(!pid) errs.push('Partner ID (lco_account_id) is required.');
@@ -404,9 +434,11 @@ function validateCase(c){ // c: {fp,method,customer,partner,files:[{name,type}],
         errs.push(`"${f.label}" is required for "${c.method}".`);
     });
   }
-  // duplicate open-case guard
-  const dup = CASES.find(x=>x.fp===c.fp && x.partner===pid && x.customer===String(c.customer).trim() && ['pending','approved','handed'].includes(x.status));
-  if(dup) errs.push(`This partner + customer already has an open ${c.fp} case (${dup.id}).`);
+  // duplicate open-case guard — keyed on device for FP4, else customer phone
+  const idKey = ff.device ? String(c.device||'').trim() : String(c.customer||'').trim();
+  const dup = CASES.find(x=>x.fp===c.fp && x.partner===pid && ['pending','approved','handed'].includes(x.status) &&
+                            (ff.device ? String(x.device||'')===idKey : String(x.customer||'')===idKey));
+  if(idKey && dup) errs.push(`This partner + ${ff.device?'device':'customer'} already has an open ${c.fp} case (${dup.id}).`);
 
   return errs;
 }
@@ -436,7 +468,7 @@ function viewReport(){
      <div class="ic">ℹ️</div><div><b>Placeholder detection presets.</b> The method→proof rules below are illustrative. Send the verified presets and they swap into one config block.</div></div>`:'';
   return `
    <h2 class="page">Report a Case</h2>
-   <div class="page-sub">Hand a confirmed violation to Product — Customer phone, Partner <span class="mono">lco_account_id</span>, proof &amp; comments.</div>
+   <div class="page-sub">Hand a confirmed violation to Product — Customer phone / Device ID, Partner <span class="mono">lco_account_id</span>, amount, proof &amp; comments.</div>
    ${banner}
    <div class="seg" style="margin-bottom:18px">
      <button onclick="setReportMode('single')" class="${state.reportMode==='single'?'active':''}">Single case</button>
@@ -447,6 +479,7 @@ function viewReport(){
 
 function reportSingle(){
   const f=state.form;
+  const ff=FP_FIELDS[f.fp]||{customer:true,device:false,amount:true};
   const methods=DETECTION_MATRIX[f.fp]||[];
   const cfg=methodCfg(f.fp,f.method);
   let proofHelp='';
@@ -491,15 +524,29 @@ function reportSingle(){
         ${proofHelp}
       </div>
       <div class="grid2">
+        ${ff.device ? `
+        <div class="field">
+          <label class="fld">Device ID <span class="req">*</span></label>
+          <input type="text" id="f_device" placeholder="e.g. RTR-AA12-8890 (router / netbox serial)" value="${esc(f.device||'')}" oninput="state.form.device=this.value">
+          <div class="help">FP4 is keyed on the device — no customer phone needed.</div>
+        </div>` : `
         <div class="field">
           <label class="fld">Customer ID — Phone <span class="req">*</span></label>
           <input type="text" id="f_customer" maxlength="10" placeholder="10-digit mobile" value="${esc(f.customer||'')}" oninput="state.form.customer=this.value">
-        </div>
+        </div>`}
         <div class="field">
           <label class="fld">Partner ID — <span class="mono">lco_account_id</span> <span class="req">*</span></label>
           <input type="text" id="f_partner" placeholder="e.g. 7000123" value="${esc(f.partner||'')}" oninput="state.form.partner=this.value;hintPartner(this.value)">
           <div class="help" id="partnerHint">Validated against the partner master.</div>
         </div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label class="fld">Amount (₹) <span class="req">*</span></label>
+          <input type="number" id="f_amount" min="0" placeholder="Penalty / extra-collected amount" value="${esc(f.amount||'')}" oninput="state.form.amount=this.value">
+          <div class="help">Amount to penalise / recover for this violation.</div>
+        </div>
+        <div></div>
       </div>
       ${extraFlds}
       <div class="field">
@@ -531,7 +578,7 @@ function reportSingle(){
         <div class="spacer"></div>
         <div class="sectiontitle">Reporting contract</div>
         <div style="font-size:12px;color:var(--text-3);line-height:1.8">
-          Customer phone · <span class="mono">lco_account_id</span> · FP# · detection method · proof · comments.
+          FP# · detection method · ${ff.device?'<b>Device ID</b>':'Customer phone'} · <span class="mono">lco_account_id</span> · amount · proof · comments.
         </div>
       </div>
     </div>
@@ -553,22 +600,24 @@ function reportBulk(){
     </div>
     <div class="card" style="overflow:auto">
       <table>
-        <thead><tr><th>#</th><th>Status</th><th>FP</th><th>Customer</th><th>Partner</th><th>Method</th><th>Proof</th><th>Issue</th></tr></thead>
+        <thead><tr><th>#</th><th>Status</th><th>FP</th><th>Customer / Device</th><th>Partner</th><th>Method</th><th>Amount</th><th>Proof</th><th>Issue</th></tr></thead>
         <tbody>
         ${rows.map((r,i)=>`<tr>
           <td class="num">${i+1}</td>
           <td>${r.errors.length?'<span class="badge b-rejected">✕ Error</span>':'<span class="badge b-recovery">✓ Valid</span>'}</td>
           <td>${r.c.fp?fpBadge(r.c.fp):'<span class="muted">—</span>'}</td>
-          <td class="mono">${esc(r.c.customer||'—')}</td>
+          <td class="mono">${esc(r.c.device||r.c.customer||'—')}</td>
           <td class="mono">${esc(r.c.partner||'—')}</td>
           <td style="font-size:12px">${esc(r.c.method||'—')}</td>
-          <td>${(r.c.files||[]).map(f=>PROOF_TYPES[f.type].icon).join(' ')||'<span class="muted">none</span>'}</td>
+          <td class="num">${r.c.amount?inr(r.c.amount):'<span class="muted">—</span>'}</td>
+          <td>${(r.c.files||[]).map(f=>`${PROOF_TYPES[f.type].icon}${f.url?' 🔗':''}`).join(' ')||'<span class="muted">none</span>'}</td>
           <td style="font-size:11.5px;color:var(--danger)">${r.errors.map(esc).join('<br/>')||'<span class="muted">—</span>'}</td>
         </tr>`).join('')}
         </tbody>
       </table>
     </div>`;
   }
+  const fileChips=state.bulkFiles.map((n,i)=>`<span class="chip ok">${PROOF_TYPES[inferType(n)].icon} ${esc(n)} <span class="x" onclick="rmBulkFile(${i})">✕</span></span>`).join('');
   return `
   <div class="card pad">
     <div class="sectiontitle">Bulk upload — CSV</div>
@@ -579,12 +628,31 @@ function reportBulk(){
       <button class="btn btn-outline btn-sm" onclick="downloadSample('FP2')">⬇ FP2 sample</button>
       <button class="btn btn-outline btn-sm" onclick="downloadSample('FP4')">⬇ FP4 sample</button>
     </div>
-    <div class="drop" id="dropCsv" onclick="document.getElementById('csvInput').click()">
-      <div style="font-size:22px">📄</div>
-      <div style="font-weight:600;color:var(--text-2)">Drop CSV or click to upload</div>
-      <div class="help">Columns: fp, customer_phone, partner_lco_account_id, method, proof_filename, comments, [extra fields]</div>
+    <div class="alert" style="background:var(--info-bg);border:1px solid #c9ddfb;color:#1d4ed8">
+      <div class="ic">🎙️</div>
+      <div><b>How proofs (incl. audio) work in CSV.</b> A CSV can't hold a file. Per row, give either:
+      <b>(1) <span class="mono">proof_url</span></b> — a link to the recording/image (call recordings already live as URLs in Ameyo/Kapture/Drive → no re-upload), or
+      <b>(2) <span class="mono">proof_filename</span></b> — and drop the matching files in <i>"Attach proof files"</i> below.</div>
     </div>
-    <input type="file" id="csvInput" accept=".csv" class="hide" onchange="loadCsv(this.files[0])">
+    <div class="grid2">
+      <div>
+        <div class="drop" id="dropCsv" onclick="document.getElementById('csvInput').click()">
+          <div style="font-size:22px">📄</div>
+          <div style="font-weight:600;color:var(--text-2)">Drop CSV or click to upload</div>
+          <div class="help">Cols: fp, customer_phone, device_id, partner_lco_account_id, method, amount, proof_url, proof_filename, comments</div>
+        </div>
+        <input type="file" id="csvInput" accept=".csv" class="hide" onchange="loadCsv(this.files[0])">
+      </div>
+      <div>
+        <div class="drop" id="dropFiles" onclick="document.getElementById('proofInput').click()">
+          <div style="font-size:22px">🎧</div>
+          <div style="font-weight:600;color:var(--text-2)">Attach proof files (optional)</div>
+          <div class="help">Audio / images matched to rows by <span class="mono">proof_filename</span>. Skip if using proof_url.</div>
+        </div>
+        <input type="file" id="proofInput" multiple class="hide" onchange="addBulkFiles(this.files)">
+        <div>${fileChips}</div>
+      </div>
+    </div>
     <div class="field" style="margin-top:14px;max-width:520px">
       <label class="fld">Batch comment (optional — applied to all rows)</label>
       <input type="text" id="batchComment" placeholder="e.g. May calling drive — confirmed disintermediation batch">
@@ -638,10 +706,10 @@ function viewDashboard(){
    </div>
 
    <div class="kpis">
-     <div class="kpi"><div class="lbl">Cases reported</div><div class="val accent">${cs.length}</div><div class="sub">${cnt('pending')} pending · ${cnt('rejected')} rejected</div></div>
-     <div class="kpi"><div class="lbl">Partners involved</div><div class="val">${partners.size}</div><div class="sub">distinct lco_account_ids</div></div>
-     <div class="kpi"><div class="lbl">Recovery done</div><div class="val" style="color:var(--success)">${inr(recAmt)}</div><div class="sub">${recovered.length} case${recovered.length===1?'':'s'} recovered</div></div>
-     <div class="kpi"><div class="lbl">Partners exited</div><div class="val" style="color:var(--danger)">${exited.size}</div><div class="sub">via this process</div></div>
+     <div class="kpi clkcard" onclick="drillShow('${state.dashFP}','cases')"><div class="lbl">Cases reported</div><div class="val accent">${cs.length}</div><div class="sub">${cnt('pending')} pending · ${cnt('rejected')} rejected →</div></div>
+     <div class="kpi clkcard" onclick="drillShow('${state.dashFP}','partners')"><div class="lbl">Partners involved</div><div class="val">${partners.size}</div><div class="sub">distinct lco_account_ids →</div></div>
+     <div class="kpi clkcard" onclick="drillShow('${state.dashFP}','recovery')"><div class="lbl">Recovery done</div><div class="val" style="color:var(--success)">${inr(recAmt)}</div><div class="sub">${recovered.length} case${recovered.length===1?'':'s'} recovered →</div></div>
+     <div class="kpi clkcard" onclick="drillShow('${state.dashFP}','exited')"><div class="lbl">Partners exited</div><div class="val" style="color:var(--danger)">${exited.size}</div><div class="sub">via this process →</div></div>
    </div>
 
    <div class="card pad" style="margin-bottom:18px">
@@ -658,14 +726,23 @@ function viewDashboard(){
        <tbody>
        ${byFP.map(r=>`<tr>
          <td>${fpBadge(r.fp)} <span class="muted" style="font-size:12px">${FP_TYPES[r.fp].name}</span></td>
-         <td class="num">${r.cases}</td><td class="num">${r.partners}</td>
-         <td class="num">${r.pending}</td><td class="num">${r.approved}</td><td class="num">${r.rejected}</td>
-         <td class="num">${r.recN}</td><td class="num">${inr(r.rec)}</td>
+         <td class="num clknum" onclick="drillShow('${r.fp}','cases')">${r.cases}</td>
+         <td class="num clknum" onclick="drillShow('${r.fp}','partners')">${r.partners}</td>
+         <td class="num clknum" onclick="drillShow('${r.fp}','pending')">${r.pending}</td>
+         <td class="num clknum" onclick="drillShow('${r.fp}','approved')">${r.approved}</td>
+         <td class="num clknum" onclick="drillShow('${r.fp}','rejected')">${r.rejected}</td>
+         <td class="num clknum" onclick="drillShow('${r.fp}','recovery')">${r.recN}</td>
+         <td class="num clknum" onclick="drillShow('${r.fp}','recovery')">${inr(r.rec)}</td>
        </tr>`).join('')}
        <tr style="font-weight:700;background:#fcfcfd">
-         <td>Total</td><td class="num">${cs.length}</td><td class="num">${partners.size}</td>
-         <td class="num">${cnt('pending')}</td><td class="num">${cs.filter(c=>['approved','handed'].includes(c.status)).length}</td>
-         <td class="num">${cnt('rejected')}</td><td class="num">${recovered.length}</td><td class="num">${inr(recAmt)}</td>
+         <td>Total</td>
+         <td class="num clknum" onclick="drillShow('${state.dashFP}','cases')">${cs.length}</td>
+         <td class="num clknum" onclick="drillShow('${state.dashFP}','partners')">${partners.size}</td>
+         <td class="num clknum" onclick="drillShow('${state.dashFP}','pending')">${cnt('pending')}</td>
+         <td class="num clknum" onclick="drillShow('${state.dashFP}','approved')">${cs.filter(c=>['approved','handed'].includes(c.status)).length}</td>
+         <td class="num clknum" onclick="drillShow('${state.dashFP}','rejected')">${cnt('rejected')}</td>
+         <td class="num clknum" onclick="drillShow('${state.dashFP}','recovery')">${recovered.length}</td>
+         <td class="num clknum" onclick="drillShow('${state.dashFP}','recovery')">${inr(recAmt)}</td>
        </tr>
        </tbody>
      </table>
@@ -692,7 +769,8 @@ function viewPartner(){
     // timeline = case events + extra events, sorted desc
     let ev=[];
     cs.forEach(c=>{
-      ev.push({date:c.reportedAt,type:'reported',title:'Case reported',meta:`${c.method} · Customer ${c.customer} · by ${c.reporter}`,fp:c.fp,id:c.id});
+      const who=c.device?`Device ${c.device}`:`Customer ${c.customer}`;
+      ev.push({date:c.reportedAt,type:'reported',title:'Case reported',meta:`${c.method} · ${who} · ${inr(c.amount)} · by ${c.reporter}`,fp:c.fp,id:c.id});
       if(['approved','handed','recovery_done'].includes(c.status)) ev.push({date:c.reportedAt,type:'approved',title:'Approved by Ops',meta:`${c.id} approved · handed to Product`,fp:c.fp});
       if(c.status==='recovery_done') ev.push({date:c.reportedAt,type:'recovery',title:'Recovery done',meta:`${inr(c.recovery)} recovered · ${c.id}`,fp:c.fp});
       if(c.status==='rejected') ev.push({date:c.reportedAt,type:'rejected',title:'Rejected',meta:c.rejectReason||'Returned to reporter',fp:c.fp});
@@ -765,14 +843,15 @@ function viewApprovals(){
    ${pend.length===0?`<div class="card pad" style="text-align:center;color:var(--text-3);padding:40px">🎉 No cases pending approval.</div>`:`
    <div class="card" style="overflow:auto;margin-bottom:22px">
      <table>
-       <thead><tr><th>Case</th><th>FP</th><th>Detection</th><th>Customer</th><th>Partner</th><th>Proof</th><th>Reporter</th><th>Reported</th><th>Comment</th><th></th></tr></thead>
+       <thead><tr><th>Case</th><th>FP</th><th>Detection</th><th>Customer / Device</th><th>Amount</th><th>Partner</th><th>Proof</th><th>Reporter</th><th>Reported</th><th>Comment</th><th></th></tr></thead>
        <tbody>
        ${pend.map(c=>`<tr>
          <td class="mono">${c.id}</td>
          <td>${fpBadge(c.fp)}</td>
-         <td style="font-size:12px">${esc(c.method)}${c.extra&&c.extra.pitched_put?`<br/><span class="pill">${c.extra.pitched_put}</span>`:''}${c.extra&&c.extra.extra_amount?`<br/><span class="pill">${inr(c.extra.extra_amount)}</span>`:''}</td>
-         <td class="mono">${c.customer}</td>
-         <td class="mono">${c.partner}<br/><span class="muted" style="font-size:11px">${esc((PARTNERS[c.partner]||{}).name||'')}</span></td>
+         <td style="font-size:12px">${esc(c.method)}${c.extra&&c.extra.pitched_put?`<br/><span class="pill">${c.extra.pitched_put}</span>`:''}${c.extra&&c.extra.ticket_id?`<br/><span class="pill">${esc(c.extra.ticket_id)}</span>`:''}</td>
+         <td class="mono">${esc(c.device||c.customer||'—')}</td>
+         <td class="num">${inr(c.amount)}</td>
+         <td class="mono"><a class="clk" onclick="gotoPartner('${c.partner}')">${esc((PARTNERS[c.partner]||{}).name||c.partner)}</a><br/><span class="muted" style="font-size:11px">${c.partner}</span></td>
          <td><a class="link" onclick="alert('Proof preview (wireframe) — '+'${c.id}')">▶ view</a></td>
          <td style="font-size:12px">${esc(c.reporter)}</td>
          <td style="font-size:12px">${fmtDate(c.reportedAt)}</td>
@@ -792,7 +871,7 @@ function viewApprovals(){
        <tbody>
        ${recent.map(c=>`<tr>
          <td class="mono">${c.id}</td><td>${fpBadge(c.fp)}</td>
-         <td class="mono">${c.partner}</td><td>${statusBadge(c.status)}</td>
+         <td class="mono"><a class="clk" onclick="gotoPartner('${c.partner}')">${esc((PARTNERS[c.partner]||{}).name||c.partner)}</a></td><td>${statusBadge(c.status)}</td>
          <td style="font-size:12px">${esc(c.reporter)}</td>
          <td style="font-size:11.5px;color:var(--text-2)">${esc(c.rejectReason||(c.status==='recovery_done'?inr(c.recovery)+' recovered':'—'))}</td>
        </tr>`).join('')}
@@ -836,7 +915,8 @@ function setExtraFromForm(){}
 
 function submitSingle(){
   const f=state.form;
-  const c={ fp:f.fp, method:f.method, customer:(f.customer||'').trim(), partner:(f.partner||'').trim(), files:f.files, extra:f.extra };
+  const c={ fp:f.fp, method:f.method, customer:(f.customer||'').trim(), device:(f.device||'').trim(),
+            partner:(f.partner||'').trim(), amount:f.amount, files:f.files, extra:f.extra };
   const errs=validateCase(c);
   const box=document.getElementById('formAlert');
   if(errs.length){
@@ -844,21 +924,35 @@ function submitSingle(){
     box.scrollIntoView({behavior:'smooth',block:'center'});
     return;
   }
-  const nc=mkCase({ fp:c.fp, method:c.method, customer:c.customer, partner:c.partner, reporter:'Priya Nair', status:'pending', reportedAt:iso(today), comments:f.comments||'', extra:Object.assign({},f.extra) });
+  const nc=mkCase({ fp:c.fp, method:c.method, customer:c.customer, device:c.device, partner:c.partner,
+                    amount:Number(c.amount)||0, reporter:'Priya Nair', status:'pending', reportedAt:iso(today),
+                    comments:f.comments||'', extra:Object.assign({},f.extra) });
   CASES.unshift(nc);
-  state.form={ fp:'FP1', method:'', files:[], extra:{}, customer:'', partner:'', comments:'' };
+  state.form={ fp:'FP1', method:'', files:[], extra:{}, customer:'', device:'', partner:'', amount:'', comments:'' };
   render();
   document.getElementById('view').insertAdjacentHTML('afterbegin',
     `<div class="alert alert-ok"><div class="ic">✅</div><div><b>${nc.id} registered.</b> Sent to Ops for approval — visible in the Approvals queue and Dashboard.</div></div>`);
 }
 
 /* ----- bulk ----- */
+const BULK_BASE_COLS=['fp','customer_phone','device_id','partner_lco_account_id','method','amount','proof_url','proof_filename','comments'];
 function downloadSample(fp){
   const cfg=DETECTION_MATRIX[fp][0];
+  const ff=FP_FIELDS[fp];
   const extraCols=[...new Set(DETECTION_MATRIX[fp].flatMap(m=>(m.extraFields||[]).map(x=>x.key)))];
-  const headers=['fp','customer_phone','partner_lco_account_id','method','proof_filename','comments',...extraCols];
-  const sample1=[fp,'9876500011','7000123',cfg.method,'rec_9876500011.'+(PROOF_TYPES[cfg.requiredProofs[0]].accept.split(',')[0].replace('.','')||'mp3'),'Confirmed on call',...extraCols.map(k=>k==='pitched_put'?'Put':k==='extra_amount'?'500':k==='ticket_id'?'KAP-0001':'')];
-  const csv=[headers.join(','),sample1.join(',')].join('\n');
+  const headers=[...BULK_BASE_COLS,...extraCols];
+  const reqType=cfg.requiredProofs[0];
+  const ext=PROOF_TYPES[reqType].accept.split(',')[0].replace('.','')||'mp3';
+  const fname=`proof_sample.${ext}`;
+  // Row 1: proof by URL (recommended for audio). Row 2: proof by filename + companion file.
+  const url = reqType==='audio' ? 'https://recordings.wiom.in/ameyo/call_98765.mp3' : 'https://drive.google.com/file/d/EXAMPLE/view';
+  const base1={fp, customer_phone: ff.customer?'9876500011':'', device_id: ff.device?'RTR-XX00-0001':'',
+               partner_lco_account_id:'7000123', method:cfg.method, amount:'500', proof_url:url, proof_filename:'', comments:'Confirmed — proof via URL'};
+  const base2={fp, customer_phone: ff.customer?'9876500022':'', device_id: ff.device?'RTR-XX00-0002':'',
+               partner_lco_account_id:'7000123', method:cfg.method, amount:'750', proof_url:'', proof_filename:fname, comments:'Proof via attached file'};
+  const ex=k=>k==='pitched_put'?'Put':k==='ticket_id'?'KAP-0001':'';
+  const line=o=>headers.map(h=> (h in o? o[h] : ex(h))).map(v=>/[,"]/.test(v)?`"${v}"`:v).join(',');
+  const csv=[headers.join(','),line(base1),line(base2)].join('\n');
   const blob=new Blob([csv],{type:'text/csv'}); const a=document.createElement('a');
   a.href=URL.createObjectURL(blob); a.download=`csp_violation_sample_${fp}.csv`; a.click();
 }
@@ -869,32 +963,96 @@ function parseCsv(text){
   const head=split(lines[0]);
   return lines.slice(1).map(l=>{ const v=split(l); const o={}; head.forEach((h,i)=>o[h]=v[i]||''); return o; });
 }
+// Resolve proof for a CSV row: a proof_url, or a proof_filename matched to an attached companion file.
+function resolveProof(o){
+  const url=(o.proof_url||'').trim();
+  const fn=(o.proof_filename||'').trim();
+  if(url){ const name=url.split('/').pop()||url; return {files:[{name,type:inferType(name),url}], proofIssue:null}; }
+  if(fn){
+    if(state.bulkFiles.includes(fn)) return {files:[{name:fn,type:inferType(fn)}], proofIssue:null};
+    return {files:[], proofIssue:`Proof file "${fn}" not attached — drop it in "Attach proof files" or use a proof_url.`};
+  }
+  return {files:[], proofIssue:'No proof_url or proof_filename provided.'};
+}
+function buildBulkRows(){
+  if(!state.bulkRaw) return;
+  state.bulkRows=state.bulkRaw.map(o=>{
+    const fp=(o.fp||'').toUpperCase().trim();
+    const {files,proofIssue}=resolveProof(o);
+    const extra={};
+    Object.keys(o).forEach(k=>{ if(!BULK_BASE_COLS.includes(k) && o[k]) extra[k]=o[k]; });
+    const c={ fp, customer:(o.customer_phone||'').trim(), device:(o.device_id||'').trim(),
+              partner:(o.partner_lco_account_id||'').trim(), method:(o.method||'').trim(),
+              amount:(o.amount||'').trim(), files, extra, comments:(o.comments||'').trim() };
+    const errors=validateCase(c);
+    if(proofIssue) errors.push(proofIssue);
+    return { c, errors };
+  });
+}
 function loadCsv(file){
   if(!file) return;
   const rd=new FileReader();
-  rd.onload=e=>{
-    const rows=parseCsv(e.target.result).map(o=>{
-      const fp=(o.fp||'').toUpperCase().trim();
-      const proofName=(o.proof_filename||'').trim();
-      const extra={};
-      Object.keys(o).forEach(k=>{ if(!['fp','customer_phone','partner_lco_account_id','method','proof_filename','comments'].includes(k) && o[k]) extra[k]=o[k]; });
-      const c={ fp, customer:(o.customer_phone||'').trim(), partner:(o.partner_lco_account_id||'').trim(), method:(o.method||'').trim(),
-                files:proofName?[{name:proofName,type:inferType(proofName)}]:[], extra, comments:(o.comments||'').trim() };
-      return { c, errors:validateCase(c) };
-    });
-    state.bulkRows=rows; render();
-  };
+  rd.onload=e=>{ state.bulkRaw=parseCsv(e.target.result); buildBulkRows(); render(); };
   rd.readAsText(file);
 }
+function addBulkFiles(list){
+  [...list].forEach(f=>{ if(!state.bulkFiles.includes(f.name)) state.bulkFiles.push(f.name); });
+  buildBulkRows(); render();
+}
+function rmBulkFile(i){ state.bulkFiles.splice(i,1); buildBulkRows(); render(); }
 function submitBulk(){
   const batch=(document.getElementById('batchComment')||{}).value||'';
   const ok=state.bulkRows.filter(r=>r.errors.length===0);
-  ok.forEach(r=>CASES.unshift(mkCase({ fp:r.c.fp, method:r.c.method, customer:r.c.customer, partner:r.c.partner, reporter:'Priya Nair', status:'pending', reportedAt:iso(today), comments:r.c.comments||batch, extra:Object.assign({},r.c.extra) })));
+  ok.forEach(r=>CASES.unshift(mkCase({ fp:r.c.fp, method:r.c.method, customer:r.c.customer, device:r.c.device,
+      partner:r.c.partner, amount:Number(r.c.amount)||0, reporter:'Priya Nair', status:'pending', reportedAt:iso(today),
+      comments:r.c.comments||batch, extra:Object.assign({},r.c.extra) })));
   const n=ok.length;
-  state.bulkRows=null; render();
+  state.bulkRaw=null; state.bulkRows=null; state.bulkFiles=[]; render();
   document.getElementById('view').insertAdjacentHTML('afterbegin',
     `<div class="alert alert-ok"><div class="ic">✅</div><div><b>${n} case${n===1?'':'s'} registered</b> and sent to Ops for approval.</div></div>`);
 }
+
+/* ----- drill-down + navigation ----- */
+function drillCasesFor(fp, metric){
+  let base=dashCases();
+  if(fp && fp!=='all') base=base.filter(c=>c.fp===fp);
+  switch(metric){
+    case 'pending':  return base.filter(c=>c.status==='pending');
+    case 'approved': return base.filter(c=>['approved','handed'].includes(c.status));
+    case 'rejected': return base.filter(c=>c.status==='rejected');
+    case 'recovery': return base.filter(c=>c.status==='recovery_done');
+    case 'exited':   return base.filter(c=>PARTNERS[c.partner]&&PARTNERS[c.partner].status==='exited');
+    default:         return base; // cases / partners
+  }
+}
+function drillShow(fp, metric){
+  const list=drillCasesFor(fp,metric);
+  const byP={}; list.forEach(c=>{ (byP[c.partner]=byP[c.partner]||[]).push(c); });
+  const partners=Object.keys(byP).sort((a,b)=>byP[b].length-byP[a].length);
+  const labels={cases:'Cases reported',partners:'Partners involved',pending:'Pending approval',approved:'Approved',rejected:'Rejected',recovery:'Recovery done',exited:'Partners exited'};
+  const fpLabel=(fp&&fp!=='all')?fp+' · ':'';
+  const title=`${fpLabel}${labels[metric]||metric}`;
+  const rangeLbl=state.dashRange==='custom'?'custom range':({'7':'last 7 days','14':'last 14 days','30':'last month'}[state.dashRange]);
+  const html=`
+   <h3>${esc(title)} <span class="muted" style="font-weight:500;font-size:12px">· ${rangeLbl}</span></h3>
+   <div class="mbody" style="max-height:62vh;overflow:auto;padding-top:14px">
+     <div class="muted" style="font-size:12px;margin-bottom:10px">${list.length} case${list.length===1?'':'s'} across ${partners.length} partner${partners.length===1?'':'s'}. Click a partner to open their full view.</div>
+     <table><thead><tr><th>Partner</th><th>Cases</th><th>Amount</th><th></th></tr></thead><tbody>
+     ${partners.map(pid=>{const arr=byP[pid];const amt=arr.reduce((s,c)=>s+(c.amount||0),0);const pn=(PARTNERS[pid]||{}).name||pid;const exited=(PARTNERS[pid]||{}).status==='exited';
+       return `<tr>
+         <td><a class="clk" onclick="gotoPartner('${pid}')">${esc(pn)}</a>${exited?' <span class="badge b-exited" style="font-size:9px">Exited</span>':''}<br/><span class="muted mono" style="font-size:11px">${pid}</span></td>
+         <td class="num">${arr.length}</td><td class="num">${inr(amt)}</td>
+         <td><a class="link" onclick="gotoPartner('${pid}')">View →</a></td>
+       </tr>`;}).join('')||'<tr><td colspan="4" class="muted" style="text-align:center;padding:24px">No cases in this slice.</td></tr>'}
+     </tbody></table>
+   </div>
+   <div class="mfoot"><button class="btn btn-outline btn-sm" onclick="closeDrill()">Close</button></div>`;
+  const m=document.getElementById('drillModal');
+  m.querySelector('.modal').innerHTML=html;
+  m.classList.add('show');
+}
+function closeDrill(){ document.getElementById('drillModal').classList.remove('show'); }
+function gotoPartner(id){ closeDrill(); state.tab='partner'; state.partnerSel=id; render(); }
 
 /* ----- approvals ----- */
 function approve(id){ const c=CASES.find(x=>x.id===id); if(c){ c.status='handed'; } render(); }
@@ -920,6 +1078,12 @@ function wireDynamic(){
     ['dragover','dragenter'].forEach(ev=>dc.addEventListener(ev,e=>{e.preventDefault();dc.classList.add('drag');}));
     ['dragleave','drop'].forEach(ev=>dc.addEventListener(ev,e=>{e.preventDefault();dc.classList.remove('drag');}));
     dc.addEventListener('drop',e=>{e.preventDefault();loadCsv(e.dataTransfer.files[0]);});
+  }
+  const df=document.getElementById('dropFiles');
+  if(df){
+    ['dragover','dragenter'].forEach(ev=>df.addEventListener(ev,e=>{e.preventDefault();df.classList.add('drag');}));
+    ['dragleave','drop'].forEach(ev=>df.addEventListener(ev,e=>{e.preventDefault();df.classList.remove('drag');}));
+    df.addEventListener('drop',e=>{e.preventDefault();addBulkFiles(e.dataTransfer.files);});
   }
 }
 
