@@ -105,6 +105,8 @@
   .b-active{background:var(--success-bg);color:#047857}
   .b-exit{background:var(--warning-bg);color:#b45309}
   .b-exited{background:var(--danger-bg);color:#b91c1c}
+  .b-contest{background:var(--warning-bg);color:#b45309}
+  .b-overturned{background:#ECECEF;color:#555}
 
   /* upload */
   .drop{border:2px dashed #d9d9de;border-radius:10px;padding:26px;text-align:center;color:var(--text-3);cursor:pointer;transition:.15s;background:#fcfcfd}
@@ -151,6 +153,9 @@
   .tl-dot.recovery{border-color:var(--success)}
   .tl-dot.approved{border-color:var(--info)}
   .tl-dot.rejected{border-color:var(--danger)}
+  .tl-dot.contest{border-color:var(--warning);background:var(--warning);box-shadow:0 0 0 4px var(--warning-bg)}
+  .tl-dot.overturned{border-color:#999}
+  .tl-item.contestcard{background:var(--warning-bg);border:1px solid #f3d9a8;border-radius:10px;padding:12px 14px;margin-left:-8px}
   .tl-date{font-size:11px;color:var(--text-3);font-weight:600}
   .tl-title{font-size:13.5px;font-weight:700;margin:2px 0}
   .tl-meta{font-size:12px;color:var(--text-2)}
@@ -236,6 +241,24 @@
 <!-- Drill-down modal -->
 <div class="modal-bg" id="drillModal" onclick="if(event.target===this)closeDrill()">
   <div class="modal wide"></div>
+</div>
+
+<!-- Contest modal -->
+<div class="modal-bg" id="contestModal" onclick="if(event.target===this)closeContest()">
+  <div class="modal">
+    <h3>Log CSP contest</h3>
+    <div class="mbody">
+      <div class="field" style="margin:0">
+        <label class="fld">Reason / dispute raised by the partner <span class="req">*</span></label>
+        <textarea id="contestReason" placeholder="e.g. CSP claims the customer was their own acquisition, not a Wiom transfer…"></textarea>
+        <div class="help">This pauses the case as <b>Contested</b> until Ops upholds or overturns it. Attach counter-evidence in the real build.</div>
+      </div>
+    </div>
+    <div class="mfoot">
+      <button class="btn btn-outline btn-sm" onclick="closeContest()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmContest()">Log contest</button>
+    </div>
+  </div>
 </div>
 
 <!-- Reject modal -->
@@ -332,8 +355,10 @@ function mkCase(o){ return Object.assign({ id:'CASE-'+(caseSeq++), comments:'', 
 
 let CASES = [
   mkCase({ fp:'FP1', method:'Outbound Calling Confirmation', customer:'9821000011', partner:'7000123', reporter:'Priya Nair',  status:'recovery_done', reportedAt:iso(daysAgo(28)), amount:2500, recovery:2500, extra:{} }),
-  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000022', partner:'7000456', reporter:'Amit Verma',  status:'approved',      reportedAt:iso(daysAgo(4)),  amount:3000, extra:{pitched_put:'Put'} }),
-  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000033', partner:'7001011', reporter:'Priya Nair',  status:'recovery_done', reportedAt:iso(daysAgo(40)), amount:5000, recovery:5000, extra:{pitched_put:'Pitched'} }),
+  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000022', partner:'7000456', reporter:'Amit Verma',  status:'contested',     reportedAt:iso(daysAgo(4)),  amount:3000, extra:{pitched_put:'Put'}, _prevStatus:'handed',
+           contest:{ raisedAt:iso(daysAgo(2)), reason:'CSP claims this was their own new acquisition, never a Wiom connection.', evidence:[{name:'csp_subscriber_proof.pdf',type:'document'}], status:'open' } }),
+  mkCase({ fp:'FP1', method:'CX Inbound Complaint',          customer:'9821000033', partner:'7001011', reporter:'Priya Nair',  status:'recovery_done', reportedAt:iso(daysAgo(40)), amount:5000, recovery:5000, extra:{pitched_put:'Pitched'},
+           contest:{ raisedAt:iso(daysAgo(37)), reason:'CSP disputed the authenticity of the call recording.', evidence:[], status:'upheld', resolvedAt:iso(daysAgo(35)), resolver:'Ops — Neha', note:'Recording cross-checked with Ameyo call logs — violation stands.' } }),
   mkCase({ fp:'FP1', method:'Outbound Calling Confirmation', customer:'9821000044', partner:'7001213', reporter:'Sara Khan',   status:'pending',       reportedAt:iso(daysAgo(2)),  amount:2500 }),
   mkCase({ fp:'FP2', method:'Payment Screenshot / Receipt',  customer:'9821000055', partner:'7000123', reporter:'Amit Verma',  status:'handed',        reportedAt:iso(daysAgo(9)),  amount:800 }),
   mkCase({ fp:'FP2', method:'Customer Confirmation Call',    customer:'9821000066', partner:'7001415', reporter:'Sara Khan',   status:'recovery_done', reportedAt:iso(daysAgo(12)), amount:1200, recovery:1200 }),
@@ -359,7 +384,7 @@ let state = {
   reportMode:'single',
   form:{ fp:'FP1', method:'', files:[], extra:{}, customer:'', device:'', partner:'', amount:'', comments:'' },
   dashRange:'7', dashFP:'all', customFrom:'', customTo:'',
-  partnerSel:'', bulkRaw:null, bulkFiles:[], rejectingId:null,
+  partnerSel:'', caseSel:null, bulkRaw:null, bulkFiles:[], rejectingId:null, contestingId:null,
 };
 
 /* ============================================================
@@ -374,7 +399,7 @@ function inferType(name){
 }
 function methodCfg(fp,method){ return (DETECTION_MATRIX[fp]||[]).find(m=>m.method===method); }
 function statusBadge(s){
-  const map={pending:['b-pending','Pending approval'],approved:['b-approved','Approved'],handed:['b-handed','Handed to Product'],recovery_done:['b-recovery','Recovery done'],rejected:['b-rejected','Rejected']};
+  const map={pending:['b-pending','Pending approval'],approved:['b-approved','Approved'],handed:['b-handed','Handed to Product'],recovery_done:['b-recovery','Recovery done'],rejected:['b-rejected','Rejected'],contested:['b-contest','Contested'],overturned:['b-overturned','Overturned']};
   const [c,t]=map[s]||['pill',s]; return `<span class="badge ${c}">${t}</span>`;
 }
 function fpBadge(fp){ const f=FP_TYPES[fp]; return `<span class="badge ${f.badge}">${fp} · ${f.short}</span>`; }
@@ -681,6 +706,7 @@ function viewDashboard(){
       recN:f.filter(c=>c.status==='recovery_done').length,
       pending:f.filter(c=>c.status==='pending').length,
       approved:f.filter(c=>['approved','handed'].includes(c.status)).length,
+      contested:f.filter(c=>c.status==='contested').length,
       rejected:f.filter(c=>c.status==='rejected').length };
   });
   const cnt=s=>cs.filter(c=>c.status===s).length;
@@ -706,7 +732,7 @@ function viewDashboard(){
    </div>
 
    <div class="kpis">
-     <div class="kpi clkcard" onclick="drillShow('${state.dashFP}','cases')"><div class="lbl">Cases reported</div><div class="val accent">${cs.length}</div><div class="sub">${cnt('pending')} pending · ${cnt('rejected')} rejected →</div></div>
+     <div class="kpi clkcard" onclick="drillShow('${state.dashFP}','cases')"><div class="lbl">Cases reported</div><div class="val accent">${cs.length}</div><div class="sub">${cnt('pending')} pending · ${cnt('contested')} contested · ${cnt('rejected')} rejected →</div></div>
      <div class="kpi clkcard" onclick="drillShow('${state.dashFP}','partners')"><div class="lbl">Partners involved</div><div class="val">${partners.size}</div><div class="sub">distinct lco_account_ids →</div></div>
      <div class="kpi clkcard" onclick="drillShow('${state.dashFP}','recovery')"><div class="lbl">Recovery done</div><div class="val" style="color:var(--success)">${inr(recAmt)}</div><div class="sub">${recovered.length} case${recovered.length===1?'':'s'} recovered →</div></div>
      <div class="kpi clkcard" onclick="drillShow('${state.dashFP}','exited')"><div class="lbl">Partners exited</div><div class="val" style="color:var(--danger)">${exited.size}</div><div class="sub">via this process →</div></div>
@@ -722,7 +748,7 @@ function viewDashboard(){
    <div class="card">
      <div class="pad" style="padding-bottom:0"><div class="sectiontitle">By Fundamental Principle</div></div>
      <table>
-       <thead><tr><th>Principle</th><th>Cases</th><th>Partners</th><th>Pending</th><th>Approved</th><th>Rejected</th><th>Recovery done</th><th>Recovered ₹</th></tr></thead>
+       <thead><tr><th>Principle</th><th>Cases</th><th>Partners</th><th>Pending</th><th>Approved</th><th>Contested</th><th>Rejected</th><th>Recovery done</th><th>Recovered ₹</th></tr></thead>
        <tbody>
        ${byFP.map(r=>`<tr>
          <td>${fpBadge(r.fp)} <span class="muted" style="font-size:12px">${FP_TYPES[r.fp].name}</span></td>
@@ -730,6 +756,7 @@ function viewDashboard(){
          <td class="num clknum" onclick="drillShow('${r.fp}','partners')">${r.partners}</td>
          <td class="num clknum" onclick="drillShow('${r.fp}','pending')">${r.pending}</td>
          <td class="num clknum" onclick="drillShow('${r.fp}','approved')">${r.approved}</td>
+         <td class="num clknum" onclick="drillShow('${r.fp}','contested')" style="${r.contested?'color:var(--warning);font-weight:700':''}">${r.contested}</td>
          <td class="num clknum" onclick="drillShow('${r.fp}','rejected')">${r.rejected}</td>
          <td class="num clknum" onclick="drillShow('${r.fp}','recovery')">${r.recN}</td>
          <td class="num clknum" onclick="drillShow('${r.fp}','recovery')">${inr(r.rec)}</td>
@@ -740,6 +767,7 @@ function viewDashboard(){
          <td class="num clknum" onclick="drillShow('${state.dashFP}','partners')">${partners.size}</td>
          <td class="num clknum" onclick="drillShow('${state.dashFP}','pending')">${cnt('pending')}</td>
          <td class="num clknum" onclick="drillShow('${state.dashFP}','approved')">${cs.filter(c=>['approved','handed'].includes(c.status)).length}</td>
+         <td class="num clknum" onclick="drillShow('${state.dashFP}','contested')">${cnt('contested')}</td>
          <td class="num clknum" onclick="drillShow('${state.dashFP}','rejected')">${cnt('rejected')}</td>
          <td class="num clknum" onclick="drillShow('${state.dashFP}','recovery')">${recovered.length}</td>
          <td class="num clknum" onclick="drillShow('${state.dashFP}','recovery')">${inr(recAmt)}</td>
@@ -750,35 +778,64 @@ function viewDashboard(){
 }
 
 /* ---------------- PARTNER VIEW ---------------- */
+// Per-case lifecycle events, chronological (incl. CSP contest)
+function caseEvents(c){
+  const ev=[];
+  const who=c.device?`Device ${c.device}`:`Customer ${c.customer}`;
+  ev.push({date:c.reportedAt,type:'reported',title:'Case reported',meta:`${c.method} · ${who} · ${inr(c.amount)} · by ${c.reporter}`});
+  if(c.status==='rejected') ev.push({date:c.reportedAt,type:'rejected',title:'Rejected by Ops',meta:c.rejectReason||'Returned to reporter'});
+  else if(['approved','handed','recovery_done','contested','overturned'].includes(c.status))
+    ev.push({date:c.reportedAt,type:'approved',title:'Approved by Ops',meta:'Handed to Product for penalty / recovery'});
+  if(c.contest){
+    const k=c.contest;
+    ev.push({date:k.raisedAt,type:'contest',title:'Contested by CSP',meta:k.reason+(k.evidence&&k.evidence.length?` · ${k.evidence.length} counter-evidence file(s)`:''),contest:true});
+    if(k.status==='upheld')     ev.push({date:k.resolvedAt,type:'approved',title:'Contest reviewed — Upheld',meta:(k.note||'Violation stands.')+(k.resolver?` · ${k.resolver}`:'')});
+    if(k.status==='overturned') ev.push({date:k.resolvedAt,type:'overturned',title:'Contest reviewed — Overturned',meta:(k.note||'Case dropped — no recovery.')+(k.resolver?` · ${k.resolver}`:'')});
+  }
+  if(c.status==='recovery_done') ev.push({date:(c.contest&&c.contest.resolvedAt)||c.reportedAt,type:'recovery',title:'Recovery done',meta:`${inr(c.recovery||c.amount)} recovered`});
+  ev.sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+  return ev;
+}
+function caseStatusCell(c){
+  let s=statusBadge(c.status);
+  if(c.status!=='contested' && c.contest) s+=` <span class="pill" style="font-size:10px">contested · ${c.contest.status}</span>`;
+  return s;
+}
+
 function viewPartner(){
   const opts=Object.values(PARTNERS);
   const sel=state.partnerSel;
-  let body='';
+  const selOpts=`
+   <div class="toolbar">
+     <select style="max-width:360px" onchange="state.partnerSel=this.value;state.caseSel=null;render()">
+       <option value="">Select a partner (lco_account_id)…</option>
+       ${opts.map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${p.id} · ${esc(p.name)}${p.status==='exited'?' (Exited)':''}</option>`).join('')}
+     </select>
+   </div>`;
   if(!sel){
-    body=`<div class="card pad" style="text-align:center;color:var(--text-3);padding:48px">
-      <div style="font-size:30px">🏢</div><div style="margin-top:8px">Search and select a partner to see their violation history &amp; timeline.</div></div>`;
-  } else {
-    const p=PARTNERS[sel];
-    const cs=CASES.filter(c=>c.partner===sel);
-    const recAmt=cs.filter(c=>c.status==='recovery_done').reduce((s,c)=>s+(c.recovery||0),0);
-    const stBadge={active:['b-active','Active'],under_exit:['b-exit','Under exit'],exited:['b-exited','Exited']}[p.status];
-    const perFP=['FP1','FP2','FP4'].map(fp=>{
-      const f=cs.filter(c=>c.fp===fp);
-      return {fp,n:f.length,rec:f.filter(c=>c.status==='recovery_done').reduce((s,c)=>s+(c.recovery||0),0)};
-    });
-    // timeline = case events + extra events, sorted desc
-    let ev=[];
-    cs.forEach(c=>{
-      const who=c.device?`Device ${c.device}`:`Customer ${c.customer}`;
-      ev.push({date:c.reportedAt,type:'reported',title:'Case reported',meta:`${c.method} · ${who} · ${inr(c.amount)} · by ${c.reporter}`,fp:c.fp,id:c.id});
-      if(['approved','handed','recovery_done'].includes(c.status)) ev.push({date:c.reportedAt,type:'approved',title:'Approved by Ops',meta:`${c.id} approved · handed to Product`,fp:c.fp});
-      if(c.status==='recovery_done') ev.push({date:c.reportedAt,type:'recovery',title:'Recovery done',meta:`${inr(c.recovery)} recovered · ${c.id}`,fp:c.fp});
-      if(c.status==='rejected') ev.push({date:c.reportedAt,type:'rejected',title:'Rejected',meta:c.rejectReason||'Returned to reporter',fp:c.fp});
-    });
-    EXTRA_EVENTS.filter(e=>e.partner===sel).forEach(e=>ev.push(e));
-    ev.sort((a,b)=>b.date<a.date?-1:b.date>a.date?1:0);
+    return `<h2 class="page">Partner View</h2>
+     <div class="page-sub">Filter by partner — violations by principle, recovery, and the case-level timeline.</div>${selOpts}
+     <div class="card pad" style="text-align:center;color:var(--text-3);padding:48px">
+       <div style="font-size:30px">🏢</div><div style="margin-top:8px">Search and select a partner to see their cases &amp; timeline.</div></div>`;
+  }
+  // case detail drill-in
+  if(state.caseSel){
+    const c=CASES.find(x=>x.id===state.caseSel && x.partner===sel);
+    if(c) return viewCaseDetail(c);
+    state.caseSel=null;
+  }
+  const p=PARTNERS[sel];
+  const cs=CASES.filter(c=>c.partner===sel).sort((a,b)=>a.reportedAt<b.reportedAt?1:-1);
+  const recAmt=cs.filter(c=>c.status==='recovery_done').reduce((s,c)=>s+(c.recovery||0),0);
+  const contestedN=cs.filter(c=>c.status==='contested').length;
+  const stBadge={active:['b-active','Active'],under_exit:['b-exit','Under exit'],exited:['b-exited','Exited']}[p.status];
+  const perFP=['FP1','FP2','FP4'].map(fp=>{
+    const f=cs.filter(c=>c.fp===fp);
+    return {fp,n:f.length,rec:f.filter(c=>c.status==='recovery_done').reduce((s,c)=>s+(c.recovery||0),0)};
+  });
+  const milestones=EXTRA_EVENTS.filter(e=>e.partner===sel).slice().sort((a,b)=>b.date<a.date?-1:1);
 
-    body=`
+  const body=`
     <div class="card pad" style="margin-bottom:18px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
         <div>
@@ -791,7 +848,7 @@ function viewPartner(){
         <div class="kpi"><div class="lbl">Total cases</div><div class="val">${cs.length}</div></div>
         <div class="kpi"><div class="lbl">Recovered</div><div class="val" style="color:var(--success)">${inr(recAmt)}</div></div>
         <div class="kpi"><div class="lbl">Open cases</div><div class="val">${cs.filter(c=>['pending','approved','handed'].includes(c.status)).length}</div></div>
-        <div class="kpi"><div class="lbl">Rejected</div><div class="val">${cs.filter(c=>c.status==='rejected').length}</div></div>
+        <div class="kpi"><div class="lbl">Contested</div><div class="val" style="color:${contestedN?'var(--warning)':'var(--text)'}">${contestedN}</div></div>
       </div>
     </div>
 
@@ -803,32 +860,97 @@ function viewPartner(){
       </div>`).join('')}
     </div>
 
+    <div class="card" style="margin-bottom:18px;overflow:auto">
+      <div class="pad" style="padding-bottom:0"><div class="sectiontitle">Cases <span class="muted" style="font-weight:500;font-size:12px">· click a case for its timeline &amp; contest history</span></div></div>
+      <table>
+        <thead><tr><th>Case</th><th>FP</th><th>Customer / Device</th><th>Method</th><th>Amount</th><th>Status</th><th>Reported</th><th></th></tr></thead>
+        <tbody>
+        ${cs.map(c=>`<tr style="cursor:pointer" onclick="gotoCase('${c.id}')">
+          <td class="mono">${c.id}</td>
+          <td>${fpBadge(c.fp)}</td>
+          <td class="mono">${esc(c.device||c.customer||'—')}</td>
+          <td style="font-size:12px">${esc(c.method)}</td>
+          <td class="num">${inr(c.amount)}</td>
+          <td>${caseStatusCell(c)}</td>
+          <td style="font-size:12px">${fmtDate(c.reportedAt)}</td>
+          <td><span class="link">Open →</span></td>
+        </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+
     <div class="card pad">
-      <div class="sectiontitle">Case timeline</div>
-      <div class="tl">
-        ${ev.map(e=>{
-          if(e.type==='exit') return `<div class="tl-item exitcard"><div class="tl-dot exit"></div>
-             <div class="tl-date">${fmtDate(e.date)}</div>
-             <div class="tl-title" style="color:#b45309">⛔ ${esc(e.title)}</div>
-             <div class="tl-meta">${esc(e.meta)}</div></div>`;
-          return `<div class="tl-item"><div class="tl-dot ${e.type}"></div>
-             <div class="tl-date">${fmtDate(e.date)} ${e.fp?'· '+fpBadge(e.fp):''}</div>
-             <div class="tl-title">${esc(e.title)}</div>
-             <div class="tl-meta">${esc(e.meta)}</div></div>`;
-        }).join('')}
-      </div>
+      <div class="sectiontitle">Partner milestones</div>
+      ${milestones.length?`<div class="tl">
+        ${milestones.map(e=> e.type==='exit'
+          ? `<div class="tl-item exitcard"><div class="tl-dot exit"></div><div class="tl-date">${fmtDate(e.date)}</div><div class="tl-title" style="color:#b45309">⛔ ${esc(e.title)}</div><div class="tl-meta">${esc(e.meta)}</div></div>`
+          : `<div class="tl-item"><div class="tl-dot ${e.type}"></div><div class="tl-date">${fmtDate(e.date)} ${e.fp?'· '+fpBadge(e.fp):''}</div><div class="tl-title">${esc(e.title)}</div><div class="tl-meta">${esc(e.meta)}</div></div>`
+        ).join('')}
+      </div>`:`<div class="muted" style="font-size:12.5px">No partner-level milestones (warnings / recovery / exit) yet.</div>`}
     </div>`;
+
+  return `<h2 class="page">Partner View</h2>
+     <div class="page-sub">Filter by partner — violations by principle, recovery, and the case-level timeline.</div>${selOpts}${body}`;
+}
+
+function viewCaseDetail(c){
+  const p=PARTNERS[c.partner]||{};
+  const ev=caseEvents(c);
+  const canAct=state.role==='approver'||state.role==='both';
+  const proofs=(c.files||[]);
+  const contestEv=(c.contest&&c.contest.evidence)||[];
+  const open = c.status==='contested';
+  let actions='';
+  if(open){
+    actions=`<div class="alert" style="background:var(--warning-bg);border:1px solid #f3d9a8;color:#b45309;margin-top:16px">
+      <div class="ic">⚖️</div><div><b>Open contest from CSP.</b> ${esc(c.contest.reason)}${canAct?' Review the counter-evidence and resolve.':' Switch to Approver/Both to resolve.'}</div></div>
+      ${canAct?`<div style="display:flex;gap:10px;margin-top:4px">
+        <button class="btn btn-success btn-sm" onclick="resolveContest('${c.id}','upheld')">Uphold violation</button>
+        <button class="btn btn-danger btn-sm" onclick="resolveContest('${c.id}','overturned')">Overturn case</button>
+      </div>`:''}`;
+  } else if(['approved','handed','recovery_done'].includes(c.status) && !c.contest){
+    actions=`<div style="margin-top:14px"><button class="btn btn-outline btn-sm" onclick="openContest('${c.id}')">⚖️ Log CSP contest</button>
+      <span class="help" style="display:inline;margin-left:8px">Record a dispute raised by the partner.</span></div>`;
   }
   return `
-   <h2 class="page">Partner View</h2>
-   <div class="page-sub">Filter by partner — violations by principle, recovery, and full timeline including exits.</div>
-   <div class="toolbar">
-     <select style="max-width:360px" onchange="state.partnerSel=this.value;render()">
-       <option value="">Select a partner (lco_account_id)…</option>
-       ${opts.map(p=>`<option value="${p.id}" ${sel===p.id?'selected':''}>${p.id} · ${esc(p.name)}${p.status==='exited'?' (Exited)':''}</option>`).join('')}
-     </select>
+   <div class="toolbar" style="margin-bottom:8px">
+     <span class="link" onclick="backToPartner()">← ${esc(p.name||'Partner')}</span>
+     <span class="muted">/</span><span class="mono">${c.id}</span>
    </div>
-   ${body}`;
+   <div class="card pad" style="margin-bottom:18px">
+     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+       <div>
+         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+           <span style="font-size:18px;font-weight:700" class="mono">${c.id}</span>${fpBadge(c.fp)}${caseStatusCell(c)}
+         </div>
+         <div class="muted" style="font-size:13px;margin-top:6px">${esc(c.method)} · reported ${fmtDate(c.reportedAt)} by ${esc(c.reporter)}</div>
+       </div>
+       <div style="text-align:right">
+         <div class="muted" style="font-size:11px">AMOUNT</div>
+         <div style="font-size:20px;font-weight:800">${inr(c.amount)}</div>
+       </div>
+     </div>
+     <div class="grid2" style="margin-top:16px">
+       <div><div class="muted" style="font-size:11px">${c.device?'DEVICE ID':'CUSTOMER (PHONE)'}</div><div class="mono" style="font-weight:600;margin-top:2px">${esc(c.device||c.customer||'—')}</div></div>
+       <div><div class="muted" style="font-size:11px">PARTNER</div><div style="margin-top:2px"><a class="clk" onclick="gotoPartner('${c.partner}')">${esc(p.name||c.partner)}</a> <span class="muted mono" style="font-size:11px">${c.partner}</span></div></div>
+     </div>
+     ${c.comments?`<div style="margin-top:14px"><div class="muted" style="font-size:11px">COMMENTS</div><div style="font-size:13px;margin-top:2px">${esc(c.comments)}</div></div>`:''}
+     <div style="margin-top:14px"><div class="muted" style="font-size:11px">PROOF</div>
+       <div style="margin-top:4px">${proofs.length?proofs.map(f=>`<span class="chip ok">${PROOF_TYPES[f.type].icon} ${esc(f.name)}${f.url?' 🔗':''}</span>`).join(''):'<span class="muted">—</span>'}
+       ${contestEv.length?'<div class="muted" style="font-size:11px;margin-top:8px">CSP COUNTER-EVIDENCE</div><div style="margin-top:4px">'+contestEv.map(f=>`<span class="chip">${PROOF_TYPES[f.type].icon} ${esc(f.name)}</span>`).join('')+'</div>':''}</div>
+     </div>
+     ${actions}
+   </div>
+
+   <div class="card pad">
+     <div class="sectiontitle">Case timeline</div>
+     <div class="tl">
+       ${ev.map(e=> e.contest
+         ? `<div class="tl-item contestcard"><div class="tl-dot contest"></div><div class="tl-date">${fmtDate(e.date)}</div><div class="tl-title" style="color:#b45309">⚖️ ${esc(e.title)}</div><div class="tl-meta">${esc(e.meta)}</div></div>`
+         : `<div class="tl-item"><div class="tl-dot ${e.type}"></div><div class="tl-date">${fmtDate(e.date)}</div><div class="tl-title">${esc(e.title)}</div><div class="tl-meta">${esc(e.meta)}</div></div>`
+       ).join('')}
+     </div>
+   </div>`;
 }
 
 /* ---------------- APPROVALS ---------------- */
@@ -846,7 +968,7 @@ function viewApprovals(){
        <thead><tr><th>Case</th><th>FP</th><th>Detection</th><th>Customer / Device</th><th>Amount</th><th>Partner</th><th>Proof</th><th>Reporter</th><th>Reported</th><th>Comment</th><th></th></tr></thead>
        <tbody>
        ${pend.map(c=>`<tr>
-         <td class="mono">${c.id}</td>
+         <td class="mono"><a class="clk" onclick="gotoCase('${c.id}')">${c.id}</a></td>
          <td>${fpBadge(c.fp)}</td>
          <td style="font-size:12px">${esc(c.method)}${c.extra&&c.extra.pitched_put?`<br/><span class="pill">${c.extra.pitched_put}</span>`:''}${c.extra&&c.extra.ticket_id?`<br/><span class="pill">${esc(c.extra.ticket_id)}</span>`:''}</td>
          <td class="mono">${esc(c.device||c.customer||'—')}</td>
@@ -870,7 +992,7 @@ function viewApprovals(){
        <thead><tr><th>Case</th><th>FP</th><th>Partner</th><th>Status</th><th>Reporter</th><th>Note</th></tr></thead>
        <tbody>
        ${recent.map(c=>`<tr>
-         <td class="mono">${c.id}</td><td>${fpBadge(c.fp)}</td>
+         <td class="mono"><a class="clk" onclick="gotoCase('${c.id}')">${c.id}</a></td><td>${fpBadge(c.fp)}</td>
          <td class="mono"><a class="clk" onclick="gotoPartner('${c.partner}')">${esc((PARTNERS[c.partner]||{}).name||c.partner)}</a></td><td>${statusBadge(c.status)}</td>
          <td style="font-size:12px">${esc(c.reporter)}</td>
          <td style="font-size:11.5px;color:var(--text-2)">${esc(c.rejectReason||(c.status==='recovery_done'?inr(c.recovery)+' recovered':'—'))}</td>
@@ -1021,6 +1143,7 @@ function drillCasesFor(fp, metric){
     case 'approved': return base.filter(c=>['approved','handed'].includes(c.status));
     case 'rejected': return base.filter(c=>c.status==='rejected');
     case 'recovery': return base.filter(c=>c.status==='recovery_done');
+    case 'contested':return base.filter(c=>c.status==='contested');
     case 'exited':   return base.filter(c=>PARTNERS[c.partner]&&PARTNERS[c.partner].status==='exited');
     default:         return base; // cases / partners
   }
@@ -1029,7 +1152,7 @@ function drillShow(fp, metric){
   const list=drillCasesFor(fp,metric);
   const byP={}; list.forEach(c=>{ (byP[c.partner]=byP[c.partner]||[]).push(c); });
   const partners=Object.keys(byP).sort((a,b)=>byP[b].length-byP[a].length);
-  const labels={cases:'Cases reported',partners:'Partners involved',pending:'Pending approval',approved:'Approved',rejected:'Rejected',recovery:'Recovery done',exited:'Partners exited'};
+  const labels={cases:'Cases reported',partners:'Partners involved',pending:'Pending approval',approved:'Approved',contested:'Contested by CSP',rejected:'Rejected',recovery:'Recovery done',exited:'Partners exited'};
   const fpLabel=(fp&&fp!=='all')?fp+' · ':'';
   const title=`${fpLabel}${labels[metric]||metric}`;
   const rangeLbl=state.dashRange==='custom'?'custom range':({'7':'last 7 days','14':'last 14 days','30':'last month'}[state.dashRange]);
@@ -1052,7 +1175,28 @@ function drillShow(fp, metric){
   m.classList.add('show');
 }
 function closeDrill(){ document.getElementById('drillModal').classList.remove('show'); }
-function gotoPartner(id){ closeDrill(); state.tab='partner'; state.partnerSel=id; render(); }
+function gotoPartner(id){ closeDrill(); state.tab='partner'; state.partnerSel=id; state.caseSel=null; render(); }
+function gotoCase(id){ const c=CASES.find(x=>x.id===id); if(!c) return; closeDrill(); state.tab='partner'; state.partnerSel=c.partner; state.caseSel=id; render(); }
+function backToPartner(){ state.caseSel=null; render(); }
+
+/* ----- CSP contest ----- */
+function openContest(id){ state.contestingId=id; document.getElementById('contestReason').value=''; document.getElementById('contestModal').classList.add('show'); }
+function closeContest(){ document.getElementById('contestModal').classList.remove('show'); state.contestingId=null; }
+function confirmContest(){
+  const r=document.getElementById('contestReason').value.trim();
+  if(!r){ document.getElementById('contestReason').style.borderColor='var(--danger)'; return; }
+  const c=CASES.find(x=>x.id===state.contestingId);
+  if(c){ c._prevStatus=c.status; c.status='contested';
+         c.contest={ raisedAt:iso(today), reason:r, evidence:[], status:'open' }; }
+  closeContest(); render();
+}
+function resolveContest(id,outcome){
+  const c=CASES.find(x=>x.id===id); if(!c||!c.contest) return;
+  c.contest.status=outcome; c.contest.resolvedAt=iso(today); c.contest.resolver='You (Ops)';
+  if(outcome==='upheld'){ c.contest.note='Counter-evidence reviewed — violation stands.'; c.status=c._prevStatus||'handed'; }
+  else { c.contest.note='Counter-evidence accepted — case dropped, no recovery.'; c.status='overturned'; }
+  render();
+}
 
 /* ----- approvals ----- */
 function approve(id){ const c=CASES.find(x=>x.id===id); if(c){ c.status='handed'; } render(); }
